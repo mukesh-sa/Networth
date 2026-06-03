@@ -1,0 +1,3262 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="data:application/json,{
+  %22name%22:%22Networth App%22,
+  %22short_name%22:%22Networth%22,
+  %22start_url%22:%22.%22,
+  %22display%22:%22standalone%22,
+  %22background_color%22:%22%230a0a0f%22,
+  %22theme_color%22:%22%230a0a0f%22,
+  %22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%237c6dfa'/%3E%3Ctext y='.9em' font-size='80' x='10'%3E📈%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22any%22,%22type%22:%22image/svg+xml%22}]
+}">
+<title>Networth App</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --bg4: #22222f;
+    --border: #2a2a3a;
+    --text: #f0f0f8;
+    --text2: #9090a8;
+    --text3: #5a5a70;
+    --accent: #7c6dfa;
+    --accent2: #a78bfa;
+    --green: #22d4a0;
+    --red: #f87272;
+    --yellow: #fbbf24;
+    --orange: #fb923c;
+    --card-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --font: 'Syne', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  [data-theme="light"] {
+    --bg: #f4f4f8;
+    --bg2: #ffffff;
+    --bg3: #eeeef4;
+    --bg4: #e4e4ec;
+    --border: #d0d0e0;
+    --text: #0a0a1a;
+    --text2: #44445a;
+    --text3: #8888a0;
+    --card-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; }
+
+  /* ── LAYOUT ── */
+  #app { display:flex; flex-direction:column; height:100vh; max-width:480px; margin:0 auto; position:relative; }
+  #topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px 12px;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:100;
+    flex-shrink:0;
+  }
+  #topbar-title { font-size:18px; font-weight:700; letter-spacing:-0.5px; }
+  #topbar-actions { display:flex; gap:10px; align-items:center; }
+  .icon-btn {
+    width:36px; height:36px; border-radius:10px;
+    background:var(--bg3); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:16px; transition:all 0.2s;
+  }
+  .icon-btn:active { transform:scale(0.92); }
+
+  #pages { flex:1; overflow-y:auto; overflow-x:hidden; scroll-behavior:smooth; }
+  #pages::-webkit-scrollbar { display:none; }
+
+  .page { display:none; padding:20px 16px 100px; animation:fadeIn 0.25s ease; }
+  .page.active { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── BOTTOM NAV ── */
+  #bottomnav {
+    display:flex; justify-content:space-around; align-items:center;
+    padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+    background:var(--bg2); border-top:1px solid var(--border);
+    position:sticky; bottom:0; z-index:100; flex-shrink:0;
+  }
+  .nav-item {
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    cursor:pointer; padding:4px 10px; border-radius:12px;
+    transition:all 0.2s; flex:1;
+  }
+  .nav-item.active { background:var(--bg3); }
+  .nav-icon { font-size:20px; line-height:1; }
+  .nav-label { font-size:9px; font-weight:600; color:var(--text3); letter-spacing:0.5px; text-transform:uppercase; }
+  .nav-item.active .nav-label { color:var(--accent2); }
+
+  /* ── CARDS ── */
+  .card {
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:var(--radius); padding:18px;
+    box-shadow:var(--card-shadow); margin-bottom:14px;
+  }
+  .card-sm { padding:14px; border-radius:var(--radius-sm); }
+  .card-label { font-size:11px; font-weight:600; color:var(--text3); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+  .card-value { font-family:var(--mono); font-size:28px; font-weight:500; letter-spacing:-1px; }
+  .card-value.sm { font-size:18px; }
+  .card-value.xs { font-size:14px; }
+  .card-sub { font-size:12px; color:var(--text2); margin-top:4px; }
+
+  .positive { color:var(--green); }
+  .negative { color:var(--red); }
+  .neutral { color:var(--text2); }
+  .accent { color:var(--accent2); }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:14px; margin-top:8px;
+  }
+  .section-title { font-size:16px; font-weight:700; }
+  .section-action {
+    font-size:12px; color:var(--accent2); cursor:pointer;
+    background:var(--bg3); padding:5px 12px; border-radius:20px;
+    border:1px solid var(--border); font-weight:600;
+  }
+
+  /* ── NETWORTH HERO ── */
+  #nw-hero {
+    background: linear-gradient(135deg, var(--bg3) 0%, var(--bg2) 100%);
+    border:1px solid var(--border);
+    border-radius:20px; padding:24px 20px 20px;
+    margin-bottom:16px; position:relative; overflow:hidden;
+  }
+  #nw-hero::before {
+    content:''; position:absolute; top:-40px; right:-40px;
+    width:150px; height:150px; border-radius:50%;
+    background:radial-gradient(circle, rgba(124,109,250,0.15) 0%, transparent 70%);
+  }
+  #nw-label { font-size:11px; font-weight:600; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase; }
+  #nw-value { font-family:var(--mono); font-size:36px; font-weight:500; letter-spacing:-2px; margin:6px 0 4px; }
+  #nw-change { font-size:13px; }
+  #nw-date { font-size:11px; color:var(--text3); margin-top:6px; }
+
+  /* ── SECTION SUMMARY CARDS ── */
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .summary-card {
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:14px;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .summary-card:active { transform:scale(0.97); }
+  .summary-card-icon { font-size:20px; margin-bottom:8px; }
+  .summary-card-label { font-size:10px; color:var(--text3); font-weight:600; letter-spacing:0.8px; text-transform:uppercase; }
+  .summary-card-value { font-family:var(--mono); font-size:16px; font-weight:500; margin-top:3px; }
+  .summary-card-change { font-size:11px; margin-top:2px; }
+
+  /* ── ETF PREMIUM CARDS ── */
+  .premium-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .premium-card {
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:14px;
+  }
+  .premium-name { font-size:11px; font-weight:700; color:var(--text2); letter-spacing:0.5px; }
+  .premium-value { font-family:var(--mono); font-size:22px; font-weight:500; margin:4px 0 2px; }
+  .premium-label { font-size:11px; font-weight:600; }
+  .premium-updated { font-size:9px; color:var(--text3); margin-top:4px; }
+
+  /* ── CHART CONTAINER ── */
+  .chart-wrap { position:relative; height:180px; margin:12px 0 4px; }
+  .chart-filters { display:flex; gap:6px; margin-bottom:10px; }
+  .filter-btn {
+    font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px;
+    border:1px solid var(--border); background:var(--bg3);
+    cursor:pointer; color:var(--text2); transition:all 0.2s;
+  }
+  .filter-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  /* ── HOLDING ROWS ── */
+  .holding-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 0; border-bottom:1px solid var(--border);
+    cursor:pointer; transition:all 0.15s;
+  }
+  .holding-row:last-child { border-bottom:none; }
+  .holding-row:active { opacity:0.7; }
+  .holding-left { flex:1; }
+  .holding-name { font-size:14px; font-weight:600; }
+  .holding-sub { font-size:11px; color:var(--text2); margin-top:2px; }
+  .holding-right { text-align:right; }
+  .holding-value { font-family:var(--mono); font-size:14px; font-weight:500; }
+  .holding-return { font-size:11px; margin-top:2px; }
+
+  /* ── ANALYSIS METRIC GRID ── */
+  .metric-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .metric-card {
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:14px;
+  }
+  .metric-label { font-size:10px; color:var(--text3); font-weight:600; letter-spacing:0.8px; text-transform:uppercase; }
+  .metric-value { font-family:var(--mono); font-size:18px; font-weight:500; margin-top:4px; }
+  .metric-sub { font-size:10px; color:var(--text2); margin-top:2px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:14px 20px; border-radius:12px; font-family:var(--font);
+    font-size:14px; font-weight:700; cursor:pointer; border:none;
+    transition:all 0.2s; width:100%; letter-spacing:0.3px;
+  }
+  .btn:active { transform:scale(0.97); }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-secondary { background:var(--bg3); color:var(--text); border:1px solid var(--border); }
+  .btn-danger { background:rgba(248,114,114,0.15); color:var(--red); border:1px solid rgba(248,114,114,0.3); }
+  .btn-sm { padding:9px 16px; font-size:12px; border-radius:9px; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.7);
+    z-index:200; display:none; align-items:flex-end;
+    backdrop-filter:blur(4px);
+  }
+  .modal-overlay.open { display:flex; }
+  .modal {
+    background:var(--bg2); border-radius:24px 24px 0 0;
+    width:100%; max-width:480px; margin:0 auto;
+    padding:24px 20px calc(24px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--border);
+    animation:slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    max-height:85vh; overflow-y:auto;
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .modal-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 20px; }
+  .modal-title { font-size:18px; font-weight:700; margin-bottom:20px; }
+
+  /* ── INPUTS ── */
+  .input-group { margin-bottom:14px; }
+  .input-label { font-size:12px; font-weight:600; color:var(--text2); margin-bottom:6px; display:block; }
+  .input {
+    width:100%; background:var(--bg3); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; color:var(--text);
+    font-family:var(--font); font-size:14px; outline:none;
+    transition:border-color 0.2s;
+  }
+  .input:focus { border-color:var(--accent); }
+  .input::placeholder { color:var(--text3); }
+  select.input { appearance:none; cursor:pointer; }
+
+  /* ── DIVIDER ── */
+  .divider { height:1px; background:var(--border); margin:16px 0; }
+
+  /* ── TABS ── */
+  .tabs { display:flex; gap:4px; background:var(--bg3); padding:4px; border-radius:12px; margin-bottom:16px; }
+  .tab {
+    flex:1; text-align:center; padding:8px; border-radius:9px;
+    font-size:12px; font-weight:600; cursor:pointer; color:var(--text2);
+    transition:all 0.2s;
+  }
+  .tab.active { background:var(--bg2); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,0.2); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align:center; padding:40px 20px; color:var(--text3); }
+  .empty-icon { font-size:40px; margin-bottom:12px; }
+  .empty-text { font-size:14px; font-weight:600; margin-bottom:4px; color:var(--text2); }
+  .empty-sub { font-size:12px; }
+
+  /* ── BADGE ── */
+  .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .badge-green { background:rgba(34,212,160,0.15); color:var(--green); }
+  .badge-red { background:rgba(248,114,114,0.15); color:var(--red); }
+  .badge-yellow { background:rgba(251,191,36,0.15); color:var(--yellow); }
+  .badge-purple { background:rgba(124,109,250,0.15); color:var(--accent2); }
+
+  /* ── TOAST ── */
+  #toast {
+    position:fixed; bottom:100px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--bg4); border:1px solid var(--border); border-radius:12px;
+    padding:10px 18px; font-size:13px; font-weight:600;
+    z-index:300; opacity:0; transition:all 0.3s; pointer-events:none;
+    white-space:nowrap;
+  }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ── CONFETTI ── */
+  #confetti-canvas { position:fixed; inset:0; pointer-events:none; z-index:400; }
+
+  /* ── HEATMAP ── */
+  .heatmap-grid { display:grid; grid-template-columns:repeat(12,1fr); gap:3px; }
+  .heatmap-cell {
+    aspect-ratio:1; border-radius:3px; background:var(--bg4);
+    cursor:pointer; transition:transform 0.1s;
+  }
+  .heatmap-cell:hover { transform:scale(1.3); }
+
+  /* ── MILESTONE TIMELINE ── */
+  .milestone-item { display:flex; gap:14px; align-items:flex-start; padding:12px 0; border-bottom:1px solid var(--border); }
+  .milestone-dot { width:10px; height:10px; border-radius:50%; background:var(--accent); margin-top:4px; flex-shrink:0; }
+  .milestone-info { flex:1; }
+  .milestone-amount { font-family:var(--mono); font-size:14px; font-weight:500; }
+  .milestone-date { font-size:11px; color:var(--text3); margin-top:2px; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar { height:6px; background:var(--bg4); border-radius:3px; overflow:hidden; margin-top:8px; }
+  .progress-fill { height:100%; border-radius:3px; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition:width 0.6s ease; }
+
+  /* ── LOADING ── */
+  .loading-spinner {
+    display:inline-block; width:14px; height:14px;
+    border:2px solid var(--border); border-top-color:var(--accent);
+    border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:6px;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .skeleton {
+    background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);
+    background-size:200% 100%; animation:shimmer 1.4s infinite;
+    border-radius:6px; color:transparent; pointer-events:none;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* ── LOADING OVERLAY ── */
+  #loading-overlay {
+    position:fixed; inset:0; background:var(--bg); z-index:500;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+    transition:opacity 0.4s;
+  }
+  #loading-overlay.hidden { opacity:0; pointer-events:none; }
+  .loading-logo { font-size:48px; animation:pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+  .loading-text { font-size:14px; color:var(--text2); font-weight:600; }
+  .loading-bar-wrap { width:160px; height:3px; background:var(--bg3); border-radius:2px; overflow:hidden; }
+  .loading-bar { height:100%; width:0%; background:var(--accent); border-radius:2px; transition:width 0.3s; }
+
+  /* ── PULL TO REFRESH indicator ── */
+  #refresh-indicator {
+    position:fixed; top:60px; left:50%; transform:translateX(-50%);
+    background:var(--bg3); border:1px solid var(--border); border-radius:20px;
+    padding:6px 14px; font-size:12px; font-weight:600; color:var(--accent2);
+    z-index:99; opacity:0; transition:opacity 0.3s; pointer-events:none;
+  }
+  #refresh-indicator.show { opacity:1; }
+
+  /* ── PRICE TAG ── */
+  .price-live { font-size:9px; color:var(--green); font-weight:600; letter-spacing:0.5px; }
+  .price-delayed { font-size:9px; color:var(--yellow); font-weight:600; letter-spacing:0.5px; }
+
+  /* ── SWIPE TABS ── */
+  .tab-content { transition:opacity 0.2s; }
+
+  /* ── DELETE ROW ── */
+  .entry-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  .entry-row:last-child { border-bottom:none; }
+  .del-btn { background:none; border:none; color:var(--text3); font-size:16px; cursor:pointer; padding:4px 8px; border-radius:6px; transition:all 0.15s; }
+  .del-btn:hover { color:var(--red); background:rgba(248,114,114,0.1); }
+  .modal::-webkit-scrollbar { width:4px; }
+  .modal::-webkit-scrollbar-track { background:transparent; }
+  .modal::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  /* ── NOTIFICATION BADGE ── */
+  .notif-dot { width:8px; height:8px; border-radius:50%; background:var(--red); position:absolute; top:-2px; right:-2px; }
+</style>
+</head>
+<body>
+<!-- Loading Overlay -->
+<div id="loading-overlay">
+  <div class="loading-logo">📈</div>
+  <div class="loading-text">Loading your networth...</div>
+  <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar"></div></div>
+</div>
+
+<!-- Refresh Indicator -->
+<div id="refresh-indicator">⟳ Refreshing prices...</div>
+
+<div id="app">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div id="topbar-title">Networth App</div>
+    <div id="topbar-actions">
+      <div class="icon-btn" onclick="toggleTheme()" title="Toggle theme">🌓</div>
+      <div class="icon-btn" onclick="openPage('settings')" title="Settings">⚙️</div>
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div id="pages">
+
+    <!-- ═══════════════════════════════════════ DASHBOARD ═══ -->
+    <div id="page-dashboard" class="page active">
+      <!-- Networth Hero -->
+      <div id="nw-hero">
+        <div id="nw-label">Total Networth</div>
+        <div id="nw-value">₹0</div>
+        <div id="nw-change" class="neutral">—</div>
+        <div id="nw-date"></div>
+        <button onclick="shareNetworthSnapshot()" style="margin-top:12px;background:rgba(124,109,250,0.15);border:1px solid rgba(124,109,250,0.3);color:var(--accent2);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">📤 Share snapshot</button>
+      </div>
+
+      <!-- ETF Premium Tracker -->
+      <div class="section-header">
+        <div class="section-title">🌍 Intl ETF Premium</div>
+        <div class="section-action" onclick="refreshPremium()">Refresh</div>
+      </div>
+      <div class="premium-grid">
+        <div class="premium-card" id="mon100-card">
+          <div class="premium-name">MON100</div>
+          <div class="premium-value" id="mon100-premium">—</div>
+          <div class="premium-label" id="mon100-label">—</div>
+          <div class="premium-updated" id="mon100-updated">Tap refresh</div>
+        </div>
+        <div class="premium-card" id="masptop50-card">
+          <div class="premium-name">MASPTOP50</div>
+          <div class="premium-value" id="masptop50-premium">—</div>
+          <div class="premium-label" id="masptop50-label">—</div>
+          <div class="premium-updated" id="masptop50-updated">Tap refresh</div>
+        </div>
+      </div>
+
+      <!-- Section Summary Cards -->
+      <div class="section-header"><div class="section-title">📊 Sections</div></div>
+      <div class="summary-grid">
+        <div class="summary-card" onclick="openPage('bank')">
+          <div class="summary-card-icon">🏦</div>
+          <div class="summary-card-label">Bank</div>
+          <div class="summary-card-value" id="dash-bank">₹0</div>
+        </div>
+        <div class="summary-card" onclick="openPage('groww')">
+          <div class="summary-card-icon">📈</div>
+          <div class="summary-card-label">Groww</div>
+          <div class="summary-card-value" id="dash-groww">₹0</div>
+          <div class="summary-card-change" id="dash-groww-ret">—</div>
+        </div>
+        <div class="summary-card" onclick="openPage('zerodha')">
+          <div class="summary-card-icon">⚡</div>
+          <div class="summary-card-label">Zerodha</div>
+          <div class="summary-card-value" id="dash-zerodha">₹0</div>
+          <div class="summary-card-change" id="dash-zerodha-ret">—</div>
+        </div>
+        <div class="summary-card" onclick="openPage('fd')">
+          <div class="summary-card-icon">🏛️</div>
+          <div class="summary-card-label">Fixed Deposit</div>
+          <div class="summary-card-value" id="dash-fd">₹0</div>
+        </div>
+        <div class="summary-card" onclick="openPage('cash')">
+          <div class="summary-card-icon">💵</div>
+          <div class="summary-card-label">Cash</div>
+          <div class="summary-card-value" id="dash-cash">₹0</div>
+        </div>
+        <div class="summary-card" onclick="openPage('analysis')">
+          <div class="summary-card-icon">🔬</div>
+          <div class="summary-card-label">Analysis</div>
+          <div class="summary-card-value accent">View →</div>
+        </div>
+      </div>
+
+      <!-- Allocation Chart -->
+      <div class="card">
+        <div class="card-label">Asset Allocation</div>
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="allocation-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Networth Chart -->
+      <div class="card">
+        <div class="card-label">Networth Over Time</div>
+        <div class="chart-filters">
+          <div class="filter-btn active" onclick="nwFilter(this,'1M')">1M</div>
+          <div class="filter-btn" onclick="nwFilter(this,'3M')">3M</div>
+          <div class="filter-btn" onclick="nwFilter(this,'6M')">6M</div>
+          <div class="filter-btn" onclick="nwFilter(this,'1Y')">1Y</div>
+          <div class="filter-btn" onclick="nwFilter(this,'ALL')">All</div>
+        </div>
+        <div class="chart-wrap"><canvas id="nw-chart"></canvas></div>
+      </div>
+
+      <!-- Best / Worst -->
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">This Month</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">🏆 BEST</div>
+            <div id="best-performer" style="font-size:13px;font-weight:600;color:var(--green)">—</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">📉 WORST</div>
+            <div id="worst-performer" style="font-size:13px;font-weight:600;color:var(--red)">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today P&L + Savings Rate -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div class="card card-sm">
+          <div class="card-label">Today's P&L</div>
+          <div class="card-value sm" id="today-pnl">—</div>
+        </div>
+        <div class="card card-sm">
+          <div class="card-label">Savings Rate</div>
+          <div class="card-value sm" id="savings-rate">—</div>
+          <div class="card-sub" id="savings-sub">Set income in settings</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ BANK ═══ -->
+    <div id="page-bank" class="page">
+      <div class="section-header">
+        <div class="section-title">🏦 Bank Balance</div>
+        <div class="section-action" onclick="openAddBank()">+ Add Entry</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="bankTab(this,'axis')">Axis Bank</div>
+        <div class="tab" onclick="bankTab(this,'hdfc')">HDFC Bank</div>
+      </div>
+
+      <div id="bank-axis-section">
+        <div class="card">
+          <div class="card-label">Current Balance</div>
+          <div class="card-value" id="axis-balance">₹0</div>
+          <div class="card-sub" id="axis-updated">No entries yet</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Monthly Avg Balance</div>
+          <div class="chart-wrap"><canvas id="axis-chart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-label" style="margin-bottom:12px">History</div>
+          <div id="axis-history"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No entries</div><div class="empty-sub">Add your first balance entry</div></div></div>
+        </div>
+      </div>
+
+      <div id="bank-hdfc-section" style="display:none">
+        <div class="card">
+          <div class="card-label">Current Balance</div>
+          <div class="card-value" id="hdfc-balance">₹0</div>
+          <div class="card-sub" id="hdfc-updated">No entries yet</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Monthly Avg Balance</div>
+          <div class="chart-wrap"><canvas id="hdfc-chart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-label" style="margin-bottom:12px">History</div>
+          <div id="hdfc-history"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No entries</div><div class="empty-sub">Add your first balance entry</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ GROWW ═══ -->
+    <div id="page-groww" class="page">
+      <div class="section-header">
+        <div class="section-title">📈 Groww</div>
+        <div class="section-action" onclick="openAddMF()">+ Add Fund</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="growwTab(this,'active')">Active</div>
+        <div class="tab" onclick="growwTab(this,'exited')">Exited</div>
+        <div class="tab" onclick="growwTab(this,'analysis')">Analysis</div>
+      </div>
+
+      <div id="groww-active">
+        <!-- Summary -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div class="card card-sm">
+            <div class="card-label">Invested</div>
+            <div class="card-value sm" id="groww-invested">₹0</div>
+          </div>
+          <div class="card card-sm">
+            <div class="card-label">Current</div>
+            <div class="card-value sm" id="groww-current">₹0</div>
+          </div>
+          <div class="card card-sm">
+            <div class="card-label">Unrealized P&L</div>
+            <div class="card-value sm" id="groww-pnl">₹0</div>
+          </div>
+          <div class="card card-sm">
+            <div class="card-label">XIRR</div>
+            <div class="card-value sm" id="groww-xirr">—</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-label" style="margin-bottom:12px">Holdings</div>
+          <div id="groww-holdings-list"><div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-text">No mutual funds yet</div><div class="empty-sub">Add your first fund</div></div></div>
+        </div>
+      </div>
+
+      <div id="groww-exited" style="display:none">
+        <div class="card">
+          <div class="card-label">Realized P&L</div>
+          <div class="card-value" id="groww-realized">₹0</div>
+        </div>
+        <div class="card">
+          <div class="card-label" style="margin-bottom:12px">Exited Positions</div>
+          <div id="groww-exited-list"><div class="empty-state"><div class="empty-icon">📤</div><div class="empty-text">No exits yet</div></div></div>
+        </div>
+      </div>
+
+      <div id="groww-analysis" style="display:none">
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-label">All Time Return</div><div class="metric-value" id="ga-alltime">—</div></div>
+          <div class="metric-card"><div class="metric-label">XIRR</div><div class="metric-value" id="ga-xirr">—</div></div>
+          <div class="metric-card"><div class="metric-label">Abs Return ₹</div><div class="metric-value" id="ga-abs-inr">—</div></div>
+          <div class="metric-card"><div class="metric-label">Abs Return %</div><div class="metric-value" id="ga-abs-pct">—</div></div>
+          <div class="metric-card"><div class="metric-label">Realized P&L</div><div class="metric-value" id="ga-realized">—</div></div>
+          <div class="metric-card"><div class="metric-label">Avg Hold Period</div><div class="metric-value" id="ga-hold">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ ZERODHA ═══ -->
+    <div id="page-zerodha" class="page">
+      <div class="section-header">
+        <div class="section-title">⚡ Zerodha</div>
+        <div class="section-action" onclick="openAddZerodha()">+ Add</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="zerodhaTab(this,'active')">Active</div>
+        <div class="tab" onclick="zerodhaTab(this,'exited')">Exited</div>
+        <div class="tab" onclick="zerodhaTab(this,'analysis')">Analysis</div>
+      </div>
+
+      <!-- Cash row -->
+      <div class="card card-sm" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="card-label">Zerodha Cash</div>
+          <div class="card-value sm" id="zerodha-cash-val">₹0</div>
+        </div>
+        <div class="btn btn-secondary btn-sm" style="width:auto" onclick="openAddZerodhaCash()">Update</div>
+      </div>
+
+      <div id="zerodha-active">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div class="card card-sm"><div class="card-label">Invested</div><div class="card-value sm" id="z-invested">₹0</div></div>
+          <div class="card card-sm"><div class="card-label">Current</div><div class="card-value sm" id="z-current">₹0</div></div>
+          <div class="card card-sm"><div class="card-label">Unrealized P&L</div><div class="card-value sm" id="z-pnl">₹0</div></div>
+          <div class="card card-sm"><div class="card-label">XIRR</div><div class="card-value sm" id="z-xirr">—</div></div>
+        </div>
+
+        <!-- Stocks -->
+        <div class="section-header" style="margin-top:4px">
+          <div style="font-size:13px;font-weight:700;color:var(--text2)">Stocks</div>
+        </div>
+        <div class="card">
+          <div id="zerodha-stocks-list"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">No stocks yet</div></div></div>
+        </div>
+
+        <!-- ETFs -->
+        <div class="section-header">
+          <div style="font-size:13px;font-weight:700;color:var(--text2)">ETFs</div>
+        </div>
+        <div class="card">
+          <div id="zerodha-etfs-list"><div class="empty-state"><div class="empty-icon">🗂️</div><div class="empty-text">No ETFs yet</div></div></div>
+        </div>
+      </div>
+
+      <div id="zerodha-exited" style="display:none">
+        <div class="card"><div class="card-label">Realized P&L</div><div class="card-value" id="z-realized">₹0</div></div>
+        <div class="card">
+          <div class="card-label" style="margin-bottom:12px">Exited Positions</div>
+          <div id="zerodha-exited-list"><div class="empty-state"><div class="empty-icon">📤</div><div class="empty-text">No exits yet</div></div></div>
+        </div>
+      </div>
+
+      <div id="zerodha-analysis" style="display:none">
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-label">All Time Return</div><div class="metric-value" id="za-alltime">—</div></div>
+          <div class="metric-card"><div class="metric-label">XIRR</div><div class="metric-value" id="za-xirr">—</div></div>
+          <div class="metric-card"><div class="metric-label">Abs Return ₹</div><div class="metric-value" id="za-abs-inr">—</div></div>
+          <div class="metric-card"><div class="metric-label">Abs Return %</div><div class="metric-value" id="za-abs-pct">—</div></div>
+          <div class="metric-card"><div class="metric-label">Realized P&L</div><div class="metric-value" id="za-realized">—</div></div>
+          <div class="metric-card"><div class="metric-label">Avg Hold Period</div><div class="metric-value" id="za-hold">—</div></div>
+          <div class="metric-card"><div class="metric-label">Best Stock</div><div class="metric-value" id="za-best" style="font-size:13px">—</div></div>
+          <div class="metric-card"><div class="metric-label">Worst Stock</div><div class="metric-value" id="za-worst" style="font-size:13px">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ FD ═══ -->
+    <div id="page-fd" class="page">
+      <div class="section-header">
+        <div class="section-title">🏛️ Fixed Deposits</div>
+        <div class="section-action" onclick="openAddFD()">+ Add FD</div>
+      </div>
+      <div id="fd-list"><div class="empty-state"><div class="empty-icon">🏛️</div><div class="empty-text">No FDs yet</div><div class="empty-sub">Add your Axis Bank FD</div></div></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ CASH ═══ -->
+    <div id="page-cash" class="page">
+      <div class="section-header">
+        <div class="section-title">💵 Cash</div>
+        <div class="section-action" onclick="openAddCash()">+ Add Entry</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Current Cash</div>
+        <div class="card-value" id="cash-total">₹0</div>
+        <div class="card-sub" id="cash-updated">No entries yet</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Cash Over Time</div>
+        <div class="chart-wrap"><canvas id="cash-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">History</div>
+        <div id="cash-history"><div class="empty-state"><div class="empty-icon">💸</div><div class="empty-text">No entries yet</div></div></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ ANALYSIS ═══ -->
+    <div id="page-analysis" class="page">
+      <div class="section-header"><div class="section-title">🔬 Analysis</div></div>
+
+      <!-- Overall metrics -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-label" style="margin-bottom:12px">Overall Portfolio</div>
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-label">Total XIRR</div><div class="metric-value" id="an-xirr">—</div></div>
+          <div class="metric-card"><div class="metric-label">Abs Return %</div><div class="metric-value" id="an-abs-pct">—</div></div>
+          <div class="metric-card"><div class="metric-label">Abs Return ₹</div><div class="metric-value" id="an-abs-inr">—</div></div>
+          <div class="metric-card"><div class="metric-label">Today P&L</div><div class="metric-value" id="an-today">—</div></div>
+          <div class="metric-card"><div class="metric-label">Unrealized P&L</div><div class="metric-value" id="an-unrealized">—</div></div>
+          <div class="metric-card"><div class="metric-label">Realized P&L</div><div class="metric-value" id="an-realized">—</div></div>
+          <div class="metric-card"><div class="metric-label">Money-Wtd Ret</div><div class="metric-value" id="an-mwr">—</div></div>
+          <div class="metric-card"><div class="metric-label">Avg Hold Period</div><div class="metric-value" id="an-hold">—</div></div>
+          <div class="metric-card"><div class="metric-label">Portfolio Age</div><div class="metric-value" id="an-age">—</div></div>
+          <div class="metric-card"><div class="metric-label">Cash Drag %</div><div class="metric-value" id="an-drag">—</div></div>
+          <div class="metric-card"><div class="metric-label">Concentration</div><div class="metric-value" id="an-conc" style="font-size:13px">—</div></div>
+          <div class="metric-card"><div class="metric-label">Health Score</div><div class="metric-value" id="an-health">—</div></div>
+        </div>
+      </div>
+
+      <!-- Benchmark -->
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">vs Nifty 50 Benchmark</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><div style="font-size:10px;color:var(--text3);margin-bottom:4px">YOUR XIRR</div><div class="card-value sm" id="bench-yours">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);margin-bottom:4px">NIFTY 50</div><div class="card-value sm" id="bench-nifty">—</div></div>
+        </div>
+        <div class="card-sub" id="bench-verdict" style="margin-top:10px">—</div>
+      </div>
+
+      <!-- Drawdown -->
+      <div class="card">
+        <div class="card-label">Drawdown from Peak</div>
+        <div class="card-value sm" id="an-drawdown">—</div>
+        <div class="progress-bar"><div class="progress-fill" id="drawdown-bar" style="width:0%;background:var(--red)"></div></div>
+        <div class="card-sub" id="an-peak">Peak: —</div>
+      </div>
+
+      <!-- Break-even prices -->
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Break-even Prices</div>
+        <div id="breakeven-list"><div class="empty-state" style="padding:20px"><div class="empty-text">No holdings yet</div></div></div>
+      </div>
+
+      <!-- Return Heatmap -->
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Monthly Return Heatmap</div>
+        <div id="heatmap-years"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+          <div style="font-size:10px;color:var(--text3)">Less</div>
+          <div style="display:flex;gap:3px">
+            <div style="width:12px;height:12px;border-radius:2px;background:rgba(248,114,114,0.8)"></div>
+            <div style="width:12px;height:12px;border-radius:2px;background:rgba(248,114,114,0.4)"></div>
+            <div style="width:12px;height:12px;border-radius:2px;background:var(--bg4)"></div>
+            <div style="width:12px;height:12px;border-radius:2px;background:rgba(34,212,160,0.4)"></div>
+            <div style="width:12px;height:12px;border-radius:2px;background:rgba(34,212,160,0.8)"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text3)">More</div>
+        </div>
+      </div>
+
+      <!-- Milestones -->
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Networth Milestones</div>
+        <div id="milestones-list"><div class="empty-state" style="padding:20px"><div class="empty-text">Keep logging your networth!</div></div></div>
+      </div>
+
+      <!-- Projections -->
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">🔮 Projections</div>
+        <div class="tabs">
+          <div class="tab active" onclick="projTab(this,'1m')">1M basis</div>
+          <div class="tab" onclick="projTab(this,'3m')">3M basis</div>
+          <div class="tab" onclick="projTab(this,'6m')">6M basis</div>
+          <div class="tab" onclick="projTab(this,'1y')">1Y basis</div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="projection-chart"></canvas></div>
+        <div id="projection-table" style="margin-top:12px"></div>
+      </div>
+
+      <!-- Rolling Returns -->
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Rolling 1Y Returns</div>
+        <div class="chart-wrap"><canvas id="rolling-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ SETTINGS ═══ -->
+    <div id="page-settings" class="page">
+      <div class="section-header"><div class="section-title">⚙️ Settings</div></div>
+
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Monthly Income</div>
+        <div class="input-group">
+          <input class="input" type="number" id="income-input" placeholder="Enter monthly income" oninput="saveIncome()">
+        </div>
+        <div class="card-sub">Used to calculate your savings rate</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Appearance</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:14px;font-weight:600">Dark Mode</div>
+          <div id="theme-toggle-btn" class="btn btn-secondary btn-sm" style="width:auto" onclick="toggleTheme()">Toggle</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">First Setup</div>
+        <div class="card-sub" style="margin-bottom:12px">Import existing holdings with average price & units. No exact lot history needed.</div>
+        <button class="btn btn-secondary" onclick="openFirstSetup()">📥 Import Existing Holdings</button>
+      </div>
+
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Install App</div>
+        <button class="btn btn-primary" id="install-btn" style="display:none" onclick="installPWA()">📱 Install on Home Screen</button>
+        <button class="btn btn-secondary" onclick="installPWA()">📱 Add to Home Screen</button>
+        <div class="card-sub" style="margin-top:8px">Works offline after install. Data stays on device.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Backup & Restore</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn btn-secondary" onclick="exportJSON()">📤 Export JSON Backup</button>
+          <button class="btn btn-secondary" onclick="importJSON()">📥 Import JSON Backup</button>
+          <button class="btn btn-secondary" onclick="exportPDF()">📄 Export PDF Summary</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Notifications</div>
+        <button class="btn btn-secondary" onclick="requestNotifPermission()">🔔 Enable Price Alerts</button>
+        <div class="card-sub" style="margin-top:8px" id="notif-status">Permission: Unknown</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px">Danger Zone</div>
+        <button class="btn btn-danger" onclick="confirmReset()">🗑️ Reset All Data</button>
+      </div>
+
+      <div style="text-align:center;padding:20px;color:var(--text3);font-size:11px">
+        Networth App • Local & Private • v1.0
+      </div>
+    </div>
+
+  </div><!-- /pages -->
+
+  <!-- BOTTOM NAV -->
+  <div id="bottomnav">
+    <div class="nav-item active" onclick="openPage('dashboard')" id="nav-dashboard">
+      <div class="nav-icon">🏠</div>
+      <div class="nav-label">Home</div>
+    </div>
+    <div class="nav-item" onclick="openPage('bank')" id="nav-bank">
+      <div class="nav-icon">🏦</div>
+      <div class="nav-label">Bank</div>
+    </div>
+    <div class="nav-item" onclick="openPage('groww')" id="nav-groww">
+      <div class="nav-icon">📈</div>
+      <div class="nav-label">Groww</div>
+    </div>
+    <div class="nav-item" onclick="openPage('zerodha')" id="nav-zerodha">
+      <div class="nav-icon">⚡</div>
+      <div class="nav-label">Zerodha</div>
+    </div>
+    <div class="nav-item" onclick="openPage('analysis')" id="nav-analysis">
+      <div class="nav-icon">🔬</div>
+      <div class="nav-label">Analysis</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ MODALS ══════════════════════════════════ -->
+
+<!-- Add Bank Entry Modal -->
+<div class="modal-overlay" id="modal-bank">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Bank Balance</div>
+    <div class="input-group">
+      <label class="input-label">Bank</label>
+      <select class="input" id="bank-select">
+        <option value="axis">Axis Bank</option>
+        <option value="hdfc">HDFC Bank</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Balance (₹)</label>
+      <input class="input" type="number" id="bank-amount" placeholder="e.g. 50000">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Date</label>
+      <input class="input" type="date" id="bank-date">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-bank')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBankEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Cash Modal -->
+<div class="modal-overlay" id="modal-cash">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Cash Entry</div>
+    <div class="input-group">
+      <label class="input-label">Amount (₹)</label>
+      <input class="input" type="number" id="cash-amount" placeholder="e.g. 10000">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Date</label>
+      <input class="input" type="date" id="cash-date">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cash')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCashEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add FD Modal -->
+<div class="modal-overlay" id="modal-fd">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Fixed Deposit</div>
+    <div class="input-group">
+      <label class="input-label">Bank</label>
+      <input class="input" type="text" id="fd-bank" value="Axis Bank">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Principal (₹)</label>
+      <input class="input" type="number" id="fd-principal" placeholder="e.g. 100000">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Interest Rate (% per year)</label>
+      <input class="input" type="number" id="fd-rate" placeholder="e.g. 7.1" step="0.1">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Start Date</label>
+      <input class="input" type="date" id="fd-start">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Maturity Date</label>
+      <input class="input" type="date" id="fd-maturity">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-fd')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFDEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add MF Modal -->
+<div class="modal-overlay" id="modal-mf">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="mf-modal-title">Add Mutual Fund</div>
+    <div class="input-group" id="mf-search-group">
+      <label class="input-label">Search Fund</label>
+      <input class="input" type="text" id="mf-search" placeholder="e.g. Parag Parikh Flexi" oninput="searchMF(this.value)">
+      <div id="mf-search-results" style="margin-top:8px;max-height:160px;overflow-y:auto"></div>
+    </div>
+    <div id="mf-selected-fund" style="display:none;background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Selected Fund</div>
+      <div id="mf-fund-name" style="font-size:13px;font-weight:600"></div>
+      <div id="mf-fund-nav" style="font-size:11px;color:var(--accent2);margin-top:2px"></div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Action</label>
+      <select class="input" id="mf-action" onchange="toggleMFAction()">
+        <option value="buy">Buy / Add Units</option>
+        <option value="sell">Sell Units</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Units</label>
+      <input class="input" type="number" id="mf-units" placeholder="e.g. 100.5" step="0.001">
+    </div>
+    <div class="input-group">
+      <label class="input-label">NAV / Price (₹)</label>
+      <input class="input" type="number" id="mf-price" placeholder="e.g. 45.23" step="0.01">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Date</label>
+      <input class="input" type="date" id="mf-date">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-mf')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMFEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Zerodha (Stock/ETF) Modal -->
+<div class="modal-overlay" id="modal-zerodha">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Stock / ETF</div>
+    <div class="input-group">
+      <label class="input-label">Type</label>
+      <select class="input" id="z-type">
+        <option value="stock">Stock</option>
+        <option value="etf">ETF</option>
+        <option value="cash">Cash Balance</option>
+      </select>
+    </div>
+    <div id="z-stock-fields">
+      <div class="input-group">
+        <label class="input-label">Search Symbol / Name</label>
+        <input class="input" type="text" id="z-search" placeholder="e.g. INFY, Infosys" oninput="searchStock(this.value)">
+        <div id="z-search-results" style="margin-top:8px;max-height:140px;overflow-y:auto"></div>
+      </div>
+      <div id="z-selected-stock" style="display:none;background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Selected</div>
+        <div id="z-stock-name" style="font-size:13px;font-weight:600"></div>
+        <div id="z-stock-price" style="font-size:11px;color:var(--accent2);margin-top:2px"></div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Action</label>
+        <select class="input" id="z-action">
+          <option value="buy">Buy / Add Units</option>
+          <option value="sell">Sell Units</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Units / Qty</label>
+        <input class="input" type="number" id="z-units" placeholder="e.g. 10" step="1">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Price (₹)</label>
+        <input class="input" type="number" id="z-price" placeholder="e.g. 1450.00" step="0.01">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Date</label>
+        <input class="input" type="date" id="z-date">
+      </div>
+    </div>
+    <div id="z-cash-field" style="display:none">
+      <div class="input-group">
+        <label class="input-label">Cash Balance (₹)</label>
+        <input class="input" type="number" id="z-cash-amount" placeholder="e.g. 5000">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-zerodha')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveZerodhaEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Zerodha Cash Modal -->
+<div class="modal-overlay" id="modal-z-cash">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Update Zerodha Cash</div>
+    <div class="input-group">
+      <label class="input-label">Cash Balance (₹)</label>
+      <input class="input" type="number" id="z-cash-val" placeholder="e.g. 5000">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-z-cash')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveZerodhaCash()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Holding Detail Modal -->
+<div class="modal-overlay" id="modal-holding-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="detail-title"></div>
+    <div id="detail-content"></div>
+    <button class="btn btn-secondary" style="margin-top:16px" onclick="closeModal('modal-holding-detail')">Close</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+<canvas id="confetti-canvas" style="display:none"></canvas>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DATA STORE
+// ══════════════════════════════════════════════════════════
+const DB = {
+  get(k) { try { return JSON.parse(localStorage.getItem('nw_'+k)) || null } catch(e) { return null } },
+  set(k,v) { localStorage.setItem('nw_'+k, JSON.stringify(v)) },
+  del(k) { localStorage.removeItem('nw_'+k) }
+};
+
+// Default data structures
+function getBank() { return DB.get('bank') || { axis:[], hdfc:[] }; }
+function getCash() { return DB.get('cash') || []; }
+function getFDs() { return DB.get('fds') || []; }
+function getGroww() { return DB.get('groww') || { holdings:{}, sells:[] }; }
+function getZerodha() { return DB.get('zerodha') || { cash:0, holdings:{}, sells:[] }; }
+function getSettings() { return DB.get('settings') || { theme:'dark', income:0 }; }
+function getSnapshots() { return DB.get('snapshots') || []; }
+function getPremiumHistory() { return DB.get('premium_history') || {}; }
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════
+let currentPage = 'dashboard';
+function openPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name)?.classList.add('active');
+  document.getElementById('nav-'+name)?.classList.add('active');
+  currentPage = name;
+  // Update topbar title
+  const titles = { dashboard:'Networth App', bank:'Bank Balance', groww:'Groww', zerodha:'Zerodha', fd:'Fixed Deposits', cash:'Cash', analysis:'Analysis', settings:'Settings' };
+  document.getElementById('topbar-title').textContent = titles[name] || 'Networth App';
+  refreshPage(name);
+}
+
+function refreshPage(name) {
+  try {
+    if(name==='dashboard') renderDashboard();
+    if(name==='bank') renderBank();
+    if(name==='groww') renderGroww();
+    if(name==='zerodha') renderZerodha();
+    if(name==='fd') renderFD();
+    if(name==='cash') renderCash();
+    if(name==='analysis') renderAnalysis();
+    if(name==='settings') renderSettings();
+  } catch(e) { console.warn('Page render error:', e); }
+}
+
+// ══════════════════════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════════════════════
+function toggleTheme() {
+  const s = getSettings();
+  s.theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', s.theme);
+  DB.set('settings', s);
+}
+
+// ══════════════════════════════════════════════════════════
+// FORMATTING
+// ══════════════════════════════════════════════════════════
+function fmtINR(n, compact=false) {
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  const abs = Math.abs(n);
+  const sign = n<0?'-':'';
+  if(compact) {
+    if(abs>=10000000) return sign+'₹'+(abs/10000000).toFixed(2)+'Cr';
+    if(abs>=100000) return sign+'₹'+(abs/100000).toFixed(2)+'L';
+    if(abs>=1000) return sign+'₹'+(abs/1000).toFixed(1)+'K';
+    return sign+'₹'+abs.toFixed(0);
+  }
+  return sign+'₹'+abs.toLocaleString('en-IN',{maximumFractionDigits:0});
+}
+function formatINR(n) {
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  const sign = n < 0 ? '-' : '';
+  return sign + '₹' + Math.abs(n).toLocaleString('en-IN', {maximumFractionDigits:0});
+}
+function fmtPct(n) {
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  return (n>=0?'+':'')+n.toFixed(2)+'%';
+}
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+function colorClass(n) { return n>0?'positive':n<0?'negative':'neutral'; }
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+// ══════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); });
+});
+
+// ══════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════
+function showToast(msg, duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ══════════════════════════════════════════════════════════
+// BANK
+// ══════════════════════════════════════════════════════════
+function openAddBank() {
+  document.getElementById('bank-date').value = todayStr();
+  document.getElementById('bank-amount').value = '';
+  openModal('modal-bank');
+}
+function saveBankEntry() {
+  const bank = getBank();
+  const which = document.getElementById('bank-select').value;
+  const amount = parseFloat(document.getElementById('bank-amount').value);
+  const date = document.getElementById('bank-date').value;
+  if(!amount||!date) { showToast('⚠️ Fill all fields'); return; }
+  bank[which].unshift({ id: Date.now(), amount, date });
+  DB.set('bank', bank);
+  closeModal('modal-bank');
+  renderBank();
+  takeSnapshot();
+  showToast('✅ Balance saved');
+}
+function renderBank() {
+  const bank = getBank();
+  renderBankSection('axis', bank.axis);
+  renderBankSection('hdfc', bank.hdfc);
+}
+function renderBankSection(which, entries) {
+  const bal = entries.length ? entries[0].amount : 0;
+  document.getElementById(which+'-balance').textContent = formatINR(bal);
+  document.getElementById(which+'-updated').textContent = entries.length ? 'Updated '+fmtDate(entries[0].date) : 'No entries yet';
+  // History with delete
+  const hist = document.getElementById(which+'-history');
+  if(!entries.length) { hist.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No entries</div></div>'; }
+  else {
+    hist.innerHTML = entries.slice(0,20).map(e=>`
+      <div class="entry-row">
+        <div>
+          <div style="font-size:14px;font-weight:600">${formatINR(e.amount)}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${fmtDate(e.date)}</div>
+        </div>
+        <button class="del-btn" onclick="deleteBankEntry('${which}',${e.id})">🗑</button>
+      </div>`).join('');
+  }
+  // Chart
+  const ctx = document.getElementById(which+'-chart')?.getContext('2d');
+  if(ctx) {
+    if(window[which+'Chart']) window[which+'Chart'].destroy();
+    const months = getMonthlyAvg(entries);
+    if(months.labels.length) window[which+'Chart'] = new Chart(ctx, chartConfig('bar', months.labels, months.values, '#7c6dfa'));
+  }
+}
+function getMonthlyAvg(entries) {
+  const byMonth = {};
+  entries.forEach(e => {
+    const key = e.date.slice(0,7);
+    if(!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push(e.amount);
+  });
+  const keys = Object.keys(byMonth).sort();
+  return {
+    labels: keys.map(k => { const [y,m]=k.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]+' '+y.slice(2); }),
+    values: keys.map(k => byMonth[k].reduce((a,b)=>a+b,0)/byMonth[k].length)
+  };
+}
+let activeBankTab = 'axis';
+function bankTab(el, which) {
+  document.querySelectorAll('#page-bank .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('bank-axis-section').style.display = which==='axis'?'block':'none';
+  document.getElementById('bank-hdfc-section').style.display = which==='hdfc'?'block':'none';
+  activeBankTab = which;
+}
+
+// ══════════════════════════════════════════════════════════
+// CASH
+// ══════════════════════════════════════════════════════════
+function openAddCash() {
+  document.getElementById('cash-date').value = todayStr();
+  document.getElementById('cash-amount').value = '';
+  openModal('modal-cash');
+}
+function saveCashEntry() {
+  const entries = getCash();
+  const amount = parseFloat(document.getElementById('cash-amount').value);
+  const date = document.getElementById('cash-date').value;
+  if(!amount||!date) { showToast('⚠️ Fill all fields'); return; }
+  entries.unshift({ id:Date.now(), amount, date });
+  DB.set('cash', entries);
+  closeModal('modal-cash');
+  renderCash();
+  takeSnapshot();
+  showToast('✅ Cash entry saved');
+}
+function renderCash() {
+  const entries = getCash();
+  const latest = entries.length ? entries[0].amount : 0;
+  document.getElementById('cash-total').textContent = formatINR(latest);
+  document.getElementById('cash-updated').textContent = entries.length ? 'Updated '+fmtDate(entries[0].date) : 'No entries yet';
+  // History with delete
+  const hist = document.getElementById('cash-history');
+  if(!entries.length) { hist.innerHTML='<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-text">No entries</div></div>'; }
+  else {
+    hist.innerHTML = entries.slice(0,20).map(e=>`
+      <div class="entry-row">
+        <div>
+          <div style="font-size:14px;font-weight:600">${formatINR(e.amount)}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${fmtDate(e.date)}</div>
+        </div>
+        <button class="del-btn" onclick="deleteCashEntry(${e.id})">🗑</button>
+      </div>`).join('');
+  }
+  // Chart
+  const ctx = document.getElementById('cash-chart')?.getContext('2d');
+  if(ctx) {
+    if(window.cashChart) window.cashChart.destroy();
+    const sorted = [...entries].sort((a,b)=>a.date.localeCompare(b.date));
+    if(sorted.length) window.cashChart = new Chart(ctx, chartConfig('line', sorted.map(e=>fmtDate(e.date)), sorted.map(e=>e.amount), '#22d4a0'));
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// FD
+// ══════════════════════════════════════════════════════════
+function openAddFD() {
+  document.getElementById('fd-start').value = todayStr();
+  document.getElementById('fd-principal').value='';
+  document.getElementById('fd-rate').value='';
+  document.getElementById('fd-maturity').value='';
+  openModal('modal-fd');
+}
+function saveFDEntry() {
+  const fds = getFDs();
+  const principal = parseFloat(document.getElementById('fd-principal').value);
+  const rate = parseFloat(document.getElementById('fd-rate').value);
+  const start = document.getElementById('fd-start').value;
+  const maturity = document.getElementById('fd-maturity').value;
+  const bank = document.getElementById('fd-bank').value;
+  if(!principal||!rate||!start||!maturity) { showToast('⚠️ Fill all fields'); return; }
+  fds.push({ id:Date.now(), bank, principal, rate, start, maturity });
+  DB.set('fds', fds);
+  closeModal('modal-fd');
+  renderFD();
+  takeSnapshot();
+  showToast('✅ FD added');
+}
+function fdCurrentValue(fd) {
+  const start = new Date(fd.start), now = new Date();
+  const years = (now - start) / (365.25 * 24 * 3600 * 1000);
+  return fd.principal * Math.pow(1 + fd.rate/100, years);
+}
+function renderFD() {
+  const fds = getFDs();
+  const list = document.getElementById('fd-list');
+  if(!fds.length) { list.innerHTML='<div class="empty-state"><div class="empty-icon">🏛️</div><div class="empty-text">No FDs yet</div><div class="empty-sub">Add your Axis Bank FD</div></div>'; return; }
+  list.innerHTML = fds.map(fd => {
+    const cv = fdCurrentValue(fd);
+    const gain = cv - fd.principal;
+    const pct = (gain/fd.principal)*100;
+    const maturity = new Date(fd.maturity);
+    const daysLeft = Math.ceil((maturity - new Date())/(24*3600*1000));
+    return `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:13px;font-weight:700">${fd.bank}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${fd.rate}% p.a. • Cumulative</div>
+        </div>
+        <div style="text-align:right">
+          <div class="badge ${daysLeft>0?'badge-green':'badge-red'}">${daysLeft>0?daysLeft+' days left':'Matured'}</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+        <div><div style="font-size:10px;color:var(--text3)">PRINCIPAL</div><div style="font-family:var(--mono);font-size:14px;margin-top:3px">${formatINR(fd.principal)}</div></div>
+        <div><div style="font-size:10px;color:var(--text3)">CURRENT</div><div style="font-family:var(--mono);font-size:14px;margin-top:3px">${formatINR(cv)}</div></div>
+        <div><div style="font-size:10px;color:var(--text3)">GAIN</div><div style="font-family:var(--mono);font-size:14px;margin-top:3px;color:var(--green)">${formatINR(gain)}</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:10px">
+        ${fmtDate(fd.start)} → ${fmtDate(fd.maturity)} • ${fmtPct(pct)} return
+      </div>
+      <button class="btn btn-danger btn-sm" style="margin-top:10px;width:auto;padding:6px 14px" onclick="deleteFD(${fd.id})">Delete</button>
+    </div>`;
+  }).join('');
+}
+function deleteFD(id) {
+  if(!confirm('Delete this FD?')) return;
+  DB.set('fds', getFDs().filter(f=>f.id!==id));
+  renderFD(); takeSnapshot();
+}
+
+// ══════════════════════════════════════════════════════════
+// GROWW - MUTUAL FUNDS
+// ══════════════════════════════════════════════════════════
+let selectedMF = null;
+let mfSearchTimeout = null;
+
+function openAddMF() {
+  selectedMF = null;
+  document.getElementById('mf-search').value = '';
+  document.getElementById('mf-search-results').innerHTML = '';
+  document.getElementById('mf-selected-fund').style.display = 'none';
+  document.getElementById('mf-search-group').style.display = 'block';
+  document.getElementById('mf-units').value = '';
+  document.getElementById('mf-price').value = '';
+  document.getElementById('mf-date').value = todayStr();
+  document.getElementById('mf-action').value = 'buy';
+  openModal('modal-mf');
+}
+
+function getRecentSearches(type) { return DB.get('recent_'+type) || []; }
+function saveRecentSearch(type, item) {
+  let recents = getRecentSearches(type).filter(r=>r.code!==item.code&&r.symbol!==item.symbol);
+  recents.unshift(item);
+  DB.set('recent_'+type, recents.slice(0,5));
+}
+
+async function searchMF(q) {
+  clearTimeout(mfSearchTimeout);
+  const res = document.getElementById('mf-search-results');
+  if(q.length < 1) {
+    // Show recents
+    const recents = getRecentSearches('mf');
+    if(recents.length) {
+      res.innerHTML = '<div style="font-size:10px;color:var(--text3);padding:4px 0 6px;font-weight:600;letter-spacing:0.5px">RECENT</div>'
+        + recents.map(f=>`<div onclick="selectMF(${f.code},'${f.name.replace(/'/g,"\\'")}','')" style="padding:10px 12px;border-radius:8px;cursor:pointer;background:var(--bg3);margin-bottom:4px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px"><span style="font-size:16px">🕐</span>${f.name}</div>`).join('');
+    }
+    return;
+  }
+  mfSearchTimeout = setTimeout(async () => {
+    res.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px;display:flex;align-items:center;gap:6px"><span class="loading-spinner"></span>Searching...</div>';
+    try {
+      const r = await fetch(`https://api.mfapi.in/mf/search?q=${encodeURIComponent(q)}`);
+      const data = await r.json();
+      if(!data.length) { res.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px">No results found</div>'; return; }
+      res.innerHTML = data.slice(0,8).map(f=>`
+        <div onclick="selectMF(${f.schemeCode},'${f.schemeName.replace(/'/g,"\\'")}','${f.schemeType}')"
+          style="padding:10px 12px;border-radius:8px;cursor:pointer;background:var(--bg3);margin-bottom:4px;font-size:13px;font-weight:500;transition:opacity 0.15s"
+          onmouseenter="this.style.opacity=0.7" onmouseleave="this.style.opacity=1">
+          ${f.schemeName}
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${f.schemeType}</div>
+        </div>`).join('');
+    } catch(e) { res.innerHTML='<div style="font-size:12px;color:var(--red);padding:8px">Search failed — check connection</div>'; }
+  }, 400);
+}
+
+async function selectMF(code, name, type) {
+  selectedMF = { code, name, type };
+  document.getElementById('mf-search-results').innerHTML = '';
+  document.getElementById('mf-search-group').style.display = 'none';
+  document.getElementById('mf-fund-name').textContent = name;
+  document.getElementById('mf-fund-nav').textContent = 'Fetching latest NAV...';
+  document.getElementById('mf-selected-fund').style.display = 'block';
+  try {
+    const r = await fetch(`https://api.mfapi.in/mf/${code}`);
+    const data = await r.json();
+    const latestNAV = data.data[0].nav;
+    selectedMF.latestNAV = latestNAV;
+    document.getElementById('mf-fund-nav').textContent = `Latest NAV: ₹${latestNAV}`;
+    document.getElementById('mf-price').value = latestNAV;
+  } catch(e) { document.getElementById('mf-fund-nav').textContent = 'NAV unavailable — enter manually'; }
+}
+
+function saveMFEntry() {
+  if(!selectedMF && !document.getElementById('mf-fund-name').textContent) { showToast('⚠️ Select a fund first'); return; }
+  const units = parseFloat(document.getElementById('mf-units').value);
+  const price = parseFloat(document.getElementById('mf-price').value);
+  const date = document.getElementById('mf-date').value;
+  const action = document.getElementById('mf-action').value;
+  if(!units||!price||!date) { showToast('⚠️ Fill all fields'); return; }
+  const groww = getGroww();
+  const key = selectedMF ? selectedMF.code : 'manual_'+Date.now();
+  const name = selectedMF ? selectedMF.name : 'Manual Fund';
+  if(action==='buy') {
+    if(!groww.holdings[key]) groww.holdings[key] = { code:key, name, lots:[] };
+    groww.holdings[key].lots.push({ id:Date.now(), units, price, date, type:'buy' });
+  } else {
+    // Sell using FIFO
+    if(!groww.holdings[key]||!groww.holdings[key].lots.length) { showToast('⚠️ No units to sell'); return; }
+    const sell = fifoSell(groww.holdings[key].lots, units, price, date);
+    groww.sells.push({ id:Date.now(), code:key, name, units, sellPrice:price, date, realizedPnL: sell.pnl, lots: sell.matchedLots });
+    if(sell.remaining<=0) delete groww.holdings[key];
+  }
+  DB.set('groww', groww);
+  closeModal('modal-mf');
+  renderGroww();
+  takeSnapshot();
+  showToast(action==='buy'?'✅ Units added':'✅ Sold & P&L recorded');
+}
+
+// ══════════════════════════════════════════════════════════
+// ZERODHA
+// ══════════════════════════════════════════════════════════
+let selectedStock = null;
+let stockSearchTimeout = null;
+
+function openAddZerodha() {
+  selectedStock = null;
+  document.getElementById('z-search').value = '';
+  document.getElementById('z-search-results').innerHTML = '';
+  document.getElementById('z-selected-stock').style.display = 'none';
+  document.getElementById('z-units').value = '';
+  document.getElementById('z-price').value = '';
+  document.getElementById('z-date').value = todayStr();
+  document.getElementById('z-action').value = 'buy';
+  document.getElementById('z-type').value = 'stock';
+  document.getElementById('z-stock-fields').style.display = 'block';
+  document.getElementById('z-cash-field').style.display = 'none';
+  openModal('modal-zerodha');
+}
+
+function openAddZerodhaCash() {
+  document.getElementById('z-cash-val').value = getZerodha().cash || '';
+  openModal('modal-z-cash');
+}
+
+function saveZerodhaCash() {
+  const z = getZerodha();
+  z.cash = parseFloat(document.getElementById('z-cash-val').value) || 0;
+  DB.set('zerodha', z);
+  closeModal('modal-z-cash');
+  renderZerodha();
+  takeSnapshot();
+  showToast('✅ Cash updated');
+}
+
+document.getElementById('z-type').addEventListener('change', function() {
+  document.getElementById('z-stock-fields').style.display = this.value==='cash'?'none':'block';
+  document.getElementById('z-cash-field').style.display = this.value==='cash'?'block':'none';
+});
+
+// NSE stock list (popular subset — will expand with search)
+const NSE_POPULAR = [
+  {symbol:'RELIANCE',name:'Reliance Industries'},
+  {symbol:'TCS',name:'Tata Consultancy Services'},
+  {symbol:'HDFCBANK',name:'HDFC Bank'},
+  {symbol:'INFY',name:'Infosys'},
+  {symbol:'ICICIBANK',name:'ICICI Bank'},
+  {symbol:'HINDUNILVR',name:'Hindustan Unilever'},
+  {symbol:'SBIN',name:'State Bank of India'},
+  {symbol:'BHARTIARTL',name:'Bharti Airtel'},
+  {symbol:'KOTAKBANK',name:'Kotak Mahindra Bank'},
+  {symbol:'BAJFINANCE',name:'Bajaj Finance'},
+  {symbol:'AXISBANK',name:'Axis Bank'},
+  {symbol:'ASIANPAINT',name:'Asian Paints'},
+  {symbol:'MARUTI',name:'Maruti Suzuki'},
+  {symbol:'TITAN',name:'Titan Company'},
+  {symbol:'WIPRO',name:'Wipro'},
+  {symbol:'ADANIENT',name:'Adani Enterprises'},
+  {symbol:'LTIM',name:'LTIMindtree'},
+  {symbol:'HCLTECH',name:'HCL Technologies'},
+  {symbol:'SUNPHARMA',name:'Sun Pharmaceutical'},
+  {symbol:'NESTLEIND',name:'Nestlé India'},
+  // ETFs
+  {symbol:'NIFTYBEES',name:'Nippon India Nifty BeES ETF'},
+  {symbol:'GOLDBEES',name:'Nippon India Gold BeES'},
+  {symbol:'JUNIORBEES',name:'Nippon India Junior BeES'},
+  {symbol:'BANKBEES',name:'Nippon India Bank BeES'},
+  {symbol:'MON100',name:'Motilal Oswal Nasdaq 100 ETF'},
+  {symbol:'MASPTOP50',name:'Mirae Asset S&P Top 50 ETF'},
+  {symbol:'MAFANG',name:'Mirae Asset NYSE FANG+ ETF'},
+  {symbol:'ICICIB22',name:'ICICI Pru Bharat 22 ETF'},
+  {symbol:'SETFNIF50',name:'SBI ETF Nifty 50'},
+  {symbol:'CPSEETF',name:'CPSE ETF'},
+];
+
+function searchStock(q) {
+  clearTimeout(stockSearchTimeout);
+  const res = document.getElementById('z-search-results');
+  if(q.length < 1) { res.innerHTML=''; return; }
+  stockSearchTimeout = setTimeout(() => {
+    const matches = NSE_POPULAR.filter(s =>
+      s.symbol.toLowerCase().includes(q.toLowerCase()) ||
+      s.name.toLowerCase().includes(q.toLowerCase())
+    ).slice(0,8);
+    if(!matches.length) { res.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px">No matches — type exact NSE symbol</div>'; return; }
+    res.innerHTML = matches.map(s=>`
+      <div onclick="selectStock('${s.symbol}','${s.name.replace(/'/g,"\\'")}')"
+        style="padding:10px 12px;border-radius:8px;cursor:pointer;background:var(--bg3);margin-bottom:4px;transition:opacity 0.15s"
+        onmouseenter="this.style.opacity=0.7" onmouseleave="this.style.opacity=1">
+        <div style="font-size:13px;font-weight:600">${s.symbol}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:1px">${s.name}</div>
+      </div>`).join('');
+  }, 200);
+}
+
+async function selectStock(symbol, name) {
+  selectedStock = { symbol, name };
+  document.getElementById('z-search-results').innerHTML = '';
+  document.getElementById('z-stock-name').textContent = `${symbol} — ${name}`;
+  document.getElementById('z-stock-price').textContent = 'Fetching price...';
+  document.getElementById('z-selected-stock').style.display = 'block';
+  // Auto-detect ETF
+  const etfSymbols = ['NIFTYBEES','GOLDBEES','JUNIORBEES','BANKBEES','MON100','MASPTOP50','MAFANG','ICICIB22','SETFNIF50','CPSEETF'];
+  if(etfSymbols.includes(symbol)) document.getElementById('z-type').value = 'etf';
+  try {
+    const price = await fetchLivePrice(symbol);
+    if(price) {
+      document.getElementById('z-stock-price').textContent = `Live: ₹${price} (15min delay)`;
+      document.getElementById('z-price').value = price;
+      selectedStock.livePrice = price;
+    }
+  } catch(e) { document.getElementById('z-stock-price').textContent = 'Price unavailable — enter manually'; }
+}
+
+async function fetchLivePrice(symbol) {
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.NS?interval=1d&range=1d`;
+  // Try direct first (works on some networks), then CORS proxies
+  const attempts = [
+    () => fetch(yahooUrl),
+    () => fetch(`https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`),
+    () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`),
+  ];
+  for(const attempt of attempts) {
+    try {
+      const r = await attempt();
+      const d = await r.json();
+      const price = d.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if(price) return price;
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+function saveZerodhaEntry() {
+  const type = document.getElementById('z-type').value;
+  if(type === 'cash') {
+    saveZerodhaCash(); return;
+  }
+  if(!selectedStock) { showToast('⚠️ Select a stock/ETF first'); return; }
+  const units = parseFloat(document.getElementById('z-units').value);
+  const price = parseFloat(document.getElementById('z-price').value);
+  const date = document.getElementById('z-date').value;
+  const action = document.getElementById('z-action').value;
+  if(!units||!price||!date) { showToast('⚠️ Fill all fields'); return; }
+  const z = getZerodha();
+  const key = selectedStock.symbol;
+  if(action==='buy') {
+    if(!z.holdings[key]) z.holdings[key] = { symbol:key, name:selectedStock.name, type, lots:[] };
+    z.holdings[key].lots.push({ id:Date.now(), units, price, date, type:'buy' });
+  } else {
+    if(!z.holdings[key]||!z.holdings[key].lots.length) { showToast('⚠️ No units to sell'); return; }
+    const sell = fifoSell(z.holdings[key].lots, units, price, date);
+    z.sells.push({ id:Date.now(), symbol:key, name:selectedStock.name, units, sellPrice:price, date, realizedPnL:sell.pnl, type });
+    if(sell.remaining<=0) delete z.holdings[key];
+  }
+  DB.set('zerodha', z);
+  closeModal('modal-zerodha');
+  renderZerodha();
+  takeSnapshot();
+  showToast(action==='buy'?'✅ Added to Zerodha':'✅ Sold & P&L recorded');
+}
+
+// ══════════════════════════════════════════════════════════
+// FIFO SELL LOGIC
+// ══════════════════════════════════════════════════════════
+function fifoSell(lots, sellUnits, sellPrice, sellDate) {
+  let remaining = sellUnits, pnl = 0, matchedLots = [];
+  const updatedLots = JSON.parse(JSON.stringify(lots));
+  for(let lot of updatedLots) {
+    if(remaining <= 0) break;
+    const used = Math.min(lot.units, remaining);
+    pnl += used * (sellPrice - lot.price);
+    matchedLots.push({ date:lot.date, units:used, buyPrice:lot.price, pnl: used*(sellPrice-lot.price) });
+    lot.units -= used;
+    remaining -= used;
+  }
+  const newLots = updatedLots.filter(l=>l.units>0);
+  return { pnl, remaining, matchedLots, newLots };
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER GROWW
+// ══════════════════════════════════════════════════════════
+async function renderGroww() {
+  const groww = getGroww();
+  const holdings = Object.values(groww.holdings);
+  let totalInvested = 0, totalCurrent = 0;
+  const listEl = document.getElementById('groww-holdings-list');
+
+  if(!holdings.length) {
+    listEl.innerHTML='<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-text">No mutual funds yet</div></div>';
+  } else {
+    // Fetch NAVs
+    const rows = await Promise.all(holdings.map(async h => {
+      const lots = h.lots.filter(l=>l.type==='buy');
+      const totalUnits = lots.reduce((s,l)=>s+l.units,0);
+      const invested = lots.reduce((s,l)=>s+l.units*l.price,0);
+      const avgPrice = invested/totalUnits;
+      let currentNAV = avgPrice;
+      try {
+        const r = await fetch(`https://api.mfapi.in/mf/${h.code}`);
+        const d = await r.json();
+        currentNAV = parseFloat(d.data[0].nav);
+      } catch(e) {}
+      const currentVal = totalUnits * currentNAV;
+      const pnl = currentVal - invested;
+      const pct = (pnl/invested)*100;
+      totalInvested += invested;
+      totalCurrent += currentVal;
+      return { h, totalUnits, invested, avgPrice, currentNAV, currentVal, pnl, pct };
+    }));
+    listEl.innerHTML = rows.map(r=>`
+      <div class="holding-row" onclick="showHoldingDetail('mf','${r.h.code}')">
+        <div class="holding-left">
+          <div class="holding-name" style="font-size:13px">${r.h.name.length>40?r.h.name.slice(0,38)+'…':r.h.name}</div>
+          <div class="holding-sub">${r.totalUnits.toFixed(3)} units • Avg ₹${r.avgPrice.toFixed(2)}</div>
+        </div>
+        <div class="holding-right">
+          <div class="holding-value">${formatINR(r.currentVal)}</div>
+          <div class="holding-return ${colorClass(r.pnl)}">${formatINR(r.pnl)} (${fmtPct(r.pct)})</div>
+        </div>
+      </div>`).join('');
+    // Update summary
+    const pnl = totalCurrent - totalInvested;
+    document.getElementById('groww-invested').textContent = formatINR(totalInvested);
+    document.getElementById('groww-current').textContent = formatINR(totalCurrent);
+    const pnlEl = document.getElementById('groww-pnl');
+    pnlEl.textContent = formatINR(pnl);
+    pnlEl.className = 'card-value sm ' + colorClass(pnl);
+    const xirr = calcXIRR(holdings.flatMap(h=>h.lots.map(l=>({date:l.date,amount:-l.units*l.price}))).concat([{date:todayStr(),amount:totalCurrent}]));
+    document.getElementById('groww-xirr').textContent = xirr ? fmtPct(xirr*100) : '—';
+    document.getElementById('groww-xirr').className = 'card-value sm ' + (xirr>0?'positive':'negative');
+
+    // Groww Analysis Tab — per section metrics
+    const realized_g = groww.sells.reduce((s,x)=>s+x.realizedPnL,0);
+    const absRetINR_g = pnl + realized_g;
+    const absRetPct_g = totalInvested>0?(absRetINR_g/totalInvested)*100:0;
+    const holdPeriods_g = holdings.flatMap(h=>h.lots.filter(l=>l.type==='buy').map(l=>(new Date()-new Date(l.date))/(24*3600*1000)));
+    const avgHold_g = holdPeriods_g.length ? holdPeriods_g.reduce((a,b)=>a+b,0)/holdPeriods_g.length : 0;
+    const setG = (id,val,cls)=>{ const el=document.getElementById(id); if(el){el.textContent=val; if(cls) el.className=cls;}};
+    setG('ga-alltime', fmtPct(absRetPct_g), 'metric-value '+(absRetPct_g>=0?'positive':'negative'));
+    setG('ga-xirr', xirr?fmtPct(xirr*100):'—', 'metric-value '+(xirr>0?'positive':'negative'));
+    setG('ga-abs-inr', formatINR(absRetINR_g), 'metric-value '+(absRetINR_g>=0?'positive':'negative'));
+    setG('ga-abs-pct', fmtPct(absRetPct_g), 'metric-value '+(absRetPct_g>=0?'positive':'negative'));
+    setG('ga-realized', formatINR(realized_g), 'metric-value '+(realized_g>=0?'positive':'negative'));
+    setG('ga-hold', avgHold_g>0?Math.round(avgHold_g)+' days':'—', 'metric-value');
+  }
+  // Exited
+  const realized = groww.sells.reduce((s,x)=>s+x.realizedPnL,0);
+  document.getElementById('groww-realized').textContent = formatINR(realized);
+  document.getElementById('groww-realized').className = 'card-value ' + colorClass(realized);
+  const exitedList = document.getElementById('groww-exited-list');
+  exitedList.innerHTML = !groww.sells.length ? '<div class="empty-state"><div class="empty-icon">📤</div><div class="empty-text">No exits</div></div>'
+    : groww.sells.map(s=>`<div class="holding-row"><div class="holding-left"><div class="holding-name">${s.name.slice(0,35)}</div><div class="holding-sub">${s.units.toFixed(3)} units @ ₹${s.sellPrice} • ${fmtDate(s.date)}</div></div><div class="holding-right"><div class="holding-return ${colorClass(s.realizedPnL)}">${formatINR(s.realizedPnL)}</div></div></div>`).join('');
+}
+
+function growwTab(el, which) {
+  document.querySelectorAll('#page-groww .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['active','exited','analysis'].forEach(s=>document.getElementById('groww-'+s).style.display='none');
+  document.getElementById('groww-'+which).style.display='block';
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER ZERODHA
+// ══════════════════════════════════════════════════════════
+async function renderZerodha() {
+  const z = getZerodha();
+  document.getElementById('zerodha-cash-val').textContent = formatINR(z.cash||0);
+  const holdings = Object.values(z.holdings);
+  let totalInvested=0, totalCurrent=0;
+  const stocksEl = document.getElementById('zerodha-stocks-list');
+  const etfsEl = document.getElementById('zerodha-etfs-list');
+  const stocks = holdings.filter(h=>h.type==='stock');
+  const etfs = holdings.filter(h=>h.type==='etf');
+
+  async function renderHoldings(items, el) {
+    if(!items.length) { el.innerHTML='<div class="empty-state" style="padding:16px"><div class="empty-text">None yet</div></div>'; return []; }
+    const rows = await Promise.all(items.map(async h => {
+      const lots = h.lots.filter(l=>l.type==='buy');
+      const totalUnits = lots.reduce((s,l)=>s+l.units,0);
+      const invested = lots.reduce((s,l)=>s+l.units*l.price,0);
+      const avgPrice = invested/totalUnits;
+      let livePrice = avgPrice;
+      try { const p = await fetchLivePrice(h.symbol); if(p) livePrice=p; } catch(e){}
+      const currentVal = totalUnits * livePrice;
+      const pnl = currentVal - invested;
+      const pct = (pnl/invested)*100;
+      return { h, totalUnits, invested, avgPrice, livePrice, currentVal, pnl, pct };
+    }));
+    el.innerHTML = rows.map(r=>`
+      <div class="holding-row" onclick="showHoldingDetail('stock','${r.h.symbol}')">
+        <div class="holding-left">
+          <div class="holding-name">${r.h.symbol}</div>
+          <div class="holding-sub">${r.totalUnits} units • Avg ₹${r.avgPrice.toFixed(2)}</div>
+        </div>
+        <div class="holding-right">
+          <div class="holding-value">${formatINR(r.currentVal)}</div>
+          <div class="holding-return ${colorClass(r.pnl)}">${formatINR(r.pnl)} (${fmtPct(r.pct)})</div>
+        </div>
+      </div>`).join('');
+    return rows;
+  }
+
+  const sRows = await renderHoldings(stocks, stocksEl);
+  const eRows = await renderHoldings(etfs, etfsEl);
+  const allRows = [...sRows, ...eRows];
+  allRows.forEach(r=>{ totalInvested+=r.invested; totalCurrent+=r.currentVal; });
+  const pnl = totalCurrent - totalInvested;
+  document.getElementById('z-invested').textContent = formatINR(totalInvested);
+  document.getElementById('z-current').textContent = formatINR(totalCurrent);
+  const pnlEl = document.getElementById('z-pnl');
+  pnlEl.textContent = formatINR(pnl);
+  pnlEl.className = 'card-value sm '+colorClass(pnl);
+  const xirr = calcXIRR(holdings.flatMap(h=>h.lots.map(l=>({date:l.date,amount:-l.units*l.price}))).concat([{date:todayStr(),amount:totalCurrent}]));
+  document.getElementById('z-xirr').textContent = xirr ? fmtPct(xirr*100) : '—';
+  document.getElementById('z-xirr').className = 'card-value sm '+(xirr>0?'positive':'negative');
+
+  // Zerodha Analysis Tab — per section metrics
+  const realized_z = z.sells.reduce((s,x)=>s+x.realizedPnL,0);
+  const absRetINR_z = pnl + realized_z;
+  const absRetPct_z = totalInvested>0?(absRetINR_z/totalInvested)*100:0;
+  const holdPeriods_z = holdings.flatMap(h=>h.lots.filter(l=>l.type==='buy').map(l=>(new Date()-new Date(l.date))/(24*3600*1000)));
+  const avgHold_z = holdPeriods_z.length?holdPeriods_z.reduce((a,b)=>a+b,0)/holdPeriods_z.length:0;
+  const bestZ = allRows.length?[...allRows].sort((a,b)=>b.pct-a.pct)[0]:null;
+  const worstZ = allRows.length?[...allRows].sort((a,b)=>a.pct-b.pct)[0]:null;
+  const setZ=(id,val,cls)=>{const el=document.getElementById(id);if(el){el.textContent=val;if(cls)el.className=cls;}};
+  setZ('za-alltime', fmtPct(absRetPct_z),'metric-value '+(absRetPct_z>=0?'positive':'negative'));
+  setZ('za-xirr', xirr?fmtPct(xirr*100):'—','metric-value '+(xirr>0?'positive':'negative'));
+  setZ('za-abs-inr', formatINR(absRetINR_z),'metric-value '+(absRetINR_z>=0?'positive':'negative'));
+  setZ('za-abs-pct', fmtPct(absRetPct_z),'metric-value '+(absRetPct_z>=0?'positive':'negative'));
+  setZ('za-realized', formatINR(realized_z),'metric-value '+(realized_z>=0?'positive':'negative'));
+  setZ('za-hold', avgHold_z>0?Math.round(avgHold_z)+' days':'—','metric-value');
+  if(bestZ) setZ('za-best', bestZ.h.symbol+(bestZ.pct?' '+fmtPct(bestZ.pct):''),'metric-value positive');
+  if(worstZ) setZ('za-worst', worstZ.h.symbol+(worstZ.pct?' '+fmtPct(worstZ.pct):''),'metric-value negative');
+
+  // Exited
+  const realized = z.sells.reduce((s,x)=>s+x.realizedPnL,0);
+  document.getElementById('z-realized').textContent = formatINR(realized);
+  document.getElementById('zerodha-exited-list').innerHTML = !z.sells.length
+    ? '<div class="empty-state"><div class="empty-icon">📤</div><div class="empty-text">No exits</div></div>'
+    : z.sells.map(s=>`<div class="holding-row"><div class="holding-left"><div class="holding-name">${s.symbol}</div><div class="holding-sub">${s.units} units @ ₹${s.sellPrice} • ${fmtDate(s.date)}</div></div><div class="holding-right"><div class="holding-return ${colorClass(s.realizedPnL)}">${formatINR(s.realizedPnL)}</div></div></div>`).join('');
+}
+
+function zerodhaTab(el, which) {
+  document.querySelectorAll('#page-zerodha .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['active','exited','analysis'].forEach(s=>document.getElementById('zerodha-'+s).style.display='none');
+  document.getElementById('zerodha-'+which).style.display='block';
+}
+
+// ══════════════════════════════════════════════════════════
+// HOLDING DETAIL MODAL — with delete lot, edit lot
+// ══════════════════════════════════════════════════════════
+async function showHoldingDetail(type, key) {
+  let h, currentPrice, name;
+  if(type==='mf') {
+    const groww = getGroww();
+    h = groww.holdings[key];
+    if(!h) return;
+    name = h.name;
+    try {
+      const r = await fetch(`https://api.mfapi.in/mf/${key}`);
+      const d = await r.json();
+      currentPrice = parseFloat(d.data[0].nav);
+    } catch(e) { currentPrice = null; }
+  } else {
+    const z = getZerodha();
+    h = z.holdings[key];
+    if(!h) return;
+    name = h.symbol + (h.name && h.name!==h.symbol ? ' — '+h.name : '');
+    currentPrice = await fetchLivePrice(h.symbol);
+  }
+  buildDetailModal(type, key, h, currentPrice, name);
+  openModal('modal-holding-detail');
+}
+
+function buildDetailModal(type, key, h, currentPrice, name) {
+  const lots = h.lots || [];
+  const totalUnits = lots.reduce((s,l)=>s+l.units,0);
+  const invested = lots.reduce((s,l)=>s+l.units*l.price,0);
+  const avgPrice = totalUnits>0 ? invested/totalUnits : 0;
+  const currentVal = currentPrice ? totalUnits*currentPrice : invested;
+  const pnl = currentVal - invested;
+  const pct = invested>0 ? (pnl/invested)*100 : 0;
+  const xirr = calcXIRR(lots.map(l=>({date:l.date,amount:-l.units*l.price})).concat([{date:todayStr(),amount:currentVal}]));
+
+  document.getElementById('detail-title').textContent = name.slice(0,45);
+  document.getElementById('detail-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="metric-card"><div class="metric-label">Invested</div><div class="metric-value" style="font-size:15px">${formatINR(invested)}</div></div>
+      <div class="metric-card"><div class="metric-label">Current</div><div class="metric-value" style="font-size:15px">${formatINR(currentVal)}</div></div>
+      <div class="metric-card"><div class="metric-label">Avg Price</div><div class="metric-value" style="font-size:15px">₹${avgPrice.toFixed(2)}</div></div>
+      <div class="metric-card"><div class="metric-label">Live Price</div><div class="metric-value" style="font-size:15px">${currentPrice?'₹'+currentPrice.toFixed(2):'—'}</div></div>
+      <div class="metric-card"><div class="metric-label">Total Units</div><div class="metric-value" style="font-size:15px">${totalUnits.toFixed(3)}</div></div>
+      <div class="metric-card"><div class="metric-label">P&L</div><div class="metric-value ${colorClass(pnl)}" style="font-size:15px">${formatINR(pnl)}</div></div>
+      <div class="metric-card"><div class="metric-label">Return %</div><div class="metric-value ${colorClass(pct)}" style="font-size:15px">${fmtPct(pct)}</div></div>
+      <div class="metric-card"><div class="metric-label">XIRR</div><div class="metric-value ${xirr?colorClass(xirr):''}" style="font-size:15px">${xirr?fmtPct(xirr*100):'—'}</div></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700">Purchase Lots (FIFO)</div>
+      <div style="font-size:11px;color:var(--text3)">${lots.length} lot${lots.length!==1?'s':''}</div>
+    </div>
+
+    ${lots.map((l,i)=>{
+      const cp = currentPrice||l.price;
+      const lotPnl = l.units*(cp-l.price);
+      const lotPct = (lotPnl/(l.units*l.price))*100;
+      const ageMs = new Date()-new Date(l.date);
+      const ageDays = Math.floor(ageMs/(24*3600*1000));
+      const ltcg = ageMs/(365.25*24*3600*1000) > 1;
+      const isImport = l.type==='import';
+      return `<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+              <div style="font-size:12px;font-weight:700">Lot ${i+1}</div>
+              ${isImport?'<div class="badge badge-purple" style="font-size:9px">IMPORTED</div>':''}
+              <div class="badge ${ltcg?'badge-green':'badge-yellow'}" style="font-size:9px">${ltcg?'LTCG':'STCG'}</div>
+            </div>
+            <div style="font-size:11px;color:var(--text2)">${fmtDate(l.date)} • ${ageDays}d ago</div>
+            <div style="font-size:12px;margin-top:4px">${l.units.toFixed(3)} units @ <span style="font-family:var(--mono)">₹${l.price.toFixed(2)}</span></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Cost: ${formatINR(l.units*l.price)}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:10px">
+            <div class="${colorClass(lotPnl)}" style="font-size:13px;font-weight:700">${formatINR(lotPnl)}</div>
+            <div class="${colorClass(lotPct)}" style="font-size:11px;margin-top:2px">${fmtPct(lotPct)}</div>
+            <div style="display:flex;gap:5px;margin-top:6px;justify-content:flex-end">
+              <button onclick="editLot('${type}','${key}',${l.id})" style="background:none;border:1px solid var(--border);color:var(--accent2);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:var(--font)">✏️ Edit</button>
+              <button onclick="deleteLot('${type}','${key}',${l.id})" style="background:none;border:1px solid rgba(248,114,114,0.3);color:var(--red);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:var(--font)">🗑 Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+
+    <button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="deleteEntireHolding('${type}','${key}')">🗑️ Delete entire holding</button>
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="shareHoldingSummary('${name}','${formatINR(currentVal)}','${fmtPct(pct)}')">📤 Share snapshot</button>
+  `;
+}
+
+function deleteLot(type, key, lotId) {
+  if(!confirm('Delete this lot? Cannot be undone.')) return;
+  if(type==='mf') {
+    const g = getGroww();
+    if(g.holdings[key]) {
+      g.holdings[key].lots = g.holdings[key].lots.filter(l=>l.id!==lotId);
+      if(!g.holdings[key].lots.length) delete g.holdings[key];
+      DB.set('groww',g);
+    }
+    closeModal('modal-holding-detail');
+    renderGroww(); takeSnapshot();
+  } else {
+    const z = getZerodha();
+    if(z.holdings[key]) {
+      z.holdings[key].lots = z.holdings[key].lots.filter(l=>l.id!==lotId);
+      if(!z.holdings[key].lots.length) delete z.holdings[key];
+      DB.set('zerodha',z);
+    }
+    closeModal('modal-holding-detail');
+    renderZerodha(); takeSnapshot();
+  }
+  showToast('🗑️ Lot deleted');
+}
+
+function editLot(type, key, lotId) {
+  // Get the lot data
+  let lot, data;
+  if(type==='mf') {
+    data = getGroww();
+    lot = data.holdings[key]?.lots.find(l=>l.id===lotId);
+  } else {
+    data = getZerodha();
+    lot = data.holdings[key]?.lots.find(l=>l.id===lotId);
+  }
+  if(!lot) return;
+
+  // Build inline edit modal
+  const existing = document.getElementById('modal-edit-lot');
+  if(existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'modal-overlay'; el.id = 'modal-edit-lot';
+  el.innerHTML = `
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Edit Lot</div>
+    <div class="card-sub" style="margin-bottom:16px">Editing lot for <strong>${type==='mf' ? (data.holdings[key]?.name||key) : key}</strong></div>
+    <div class="input-group">
+      <label class="input-label">Units</label>
+      <input class="input" type="number" id="edit-lot-units" value="${lot.units}" step="${type==='mf'?'0.001':'1'}">
+    </div>
+    <div class="input-group">
+      <label class="input-label">${type==='mf'?'NAV / Price (₹)':'Buy Price (₹)'}</label>
+      <input class="input" type="number" id="edit-lot-price" value="${lot.price}" step="0.01">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Date</label>
+      <input class="input" type="date" id="edit-lot-date" value="${lot.date}">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-edit-lot').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditLot('${type}','${key}',${lotId})">Save Changes</button>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', e => { if(e.target===el) el.remove(); });
+  el.classList.add('open');
+}
+
+function saveEditLot(type, key, lotId) {
+  const units = parseFloat(document.getElementById('edit-lot-units').value);
+  const price = parseFloat(document.getElementById('edit-lot-price').value);
+  const date = document.getElementById('edit-lot-date').value;
+  if(!units || !price || !date) { showToast('⚠️ Fill all fields'); return; }
+  if(type==='mf') {
+    const g = getGroww();
+    const lot = g.holdings[key]?.lots.find(l=>l.id===lotId);
+    if(lot) { lot.units=units; lot.price=price; lot.date=date; DB.set('groww',g); }
+    document.getElementById('modal-edit-lot').remove();
+    closeModal('modal-holding-detail');
+    renderGroww(); takeSnapshot();
+  } else {
+    const z = getZerodha();
+    const lot = z.holdings[key]?.lots.find(l=>l.id===lotId);
+    if(lot) { lot.units=units; lot.price=price; lot.date=date; DB.set('zerodha',z); }
+    document.getElementById('modal-edit-lot').remove();
+    closeModal('modal-holding-detail');
+    renderZerodha(); takeSnapshot();
+  }
+  showToast('✅ Lot updated');
+}
+
+function deleteEntireHolding(type, key) {
+  if(!confirm('Delete ALL lots for this holding? Cannot be undone.')) return;
+  if(type==='mf') {
+    const g = getGroww(); delete g.holdings[key]; DB.set('groww',g);
+    closeModal('modal-holding-detail'); renderGroww(); takeSnapshot();
+  } else {
+    const z = getZerodha(); delete z.holdings[key]; DB.set('zerodha',z);
+    closeModal('modal-holding-detail'); renderZerodha(); takeSnapshot();
+  }
+  showToast('🗑️ Holding deleted');
+}
+
+function shareHoldingSummary(name, value, ret) {
+  const text = `📊 ${name}\nCurrent Value: ${value}\nReturn: ${ret}\n\n— Networth App`;
+  if(navigator.share) {
+    navigator.share({ title:'Holding Summary', text }).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(text).then(()=>showToast('📋 Copied to clipboard'));
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// SHARE NETWORTH SNAPSHOT
+// ══════════════════════════════════════════════════════════
+function shareNetworthSnapshot() {
+  const val = document.getElementById('nw-value')?.textContent || '—';
+  const change = document.getElementById('nw-change')?.textContent || '';
+  const date = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const text = `💰 My Networth as of ${date}\n\n${val}\n${change}\n\n— Networth App`;
+  if(navigator.share) {
+    navigator.share({ title:'My Networth', text }).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(text).then(()=>showToast('📋 Copied to clipboard'));
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════
+// XIRR CALCULATION
+// ══════════════════════════════════════════════════════════
+function calcXIRR(cashflows) {
+  if(!cashflows || cashflows.length < 2) return null;
+  const flows = cashflows.map(c => ({ d: new Date(c.date), a: c.amount }));
+  const d0 = flows[0].d;
+  function npv(rate) {
+    return flows.reduce((s,f) => s + f.a / Math.pow(1+rate, (f.d-d0)/(365.25*24*3600*1000)), 0);
+  }
+  let lo=-0.999, hi=10, mid;
+  for(let i=0;i<100;i++) {
+    mid=(lo+hi)/2;
+    if(npv(mid)>0) lo=mid; else hi=mid;
+    if(hi-lo<1e-8) break;
+  }
+  return isFinite(mid)?mid:null;
+}
+
+// ══════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════
+async function renderDashboard() {
+  const bank = getBank();
+  const cash = getCash();
+  const fds = getFDs();
+  const z = getZerodha();
+  const s = getSettings();
+
+  const axisbal = bank.axis.length ? bank.axis[0].amount : 0;
+  const hdfcbal = bank.hdfc.length ? bank.hdfc[0].amount : 0;
+  const bankTotal = axisbal + hdfcbal;
+  const cashTotal = cash.length ? cash[0].amount : 0;
+  const fdTotal = fds.reduce((s,f)=>s+fdCurrentValue(f),0);
+  const zCash = z.cash || 0;
+
+  // Groww current
+  let growwTotal = 0;
+  const growwHoldings = Object.values(getGroww().holdings);
+  for(const h of growwHoldings) {
+    const lots = h.lots.filter(l=>l.type==='buy');
+    const units = lots.reduce((s,l)=>s+l.units,0);
+    const invested = lots.reduce((s,l)=>s+l.units*l.price,0);
+    try {
+      const r = await fetch(`https://api.mfapi.in/mf/${h.code}`);
+      const d = await r.json();
+      growwTotal += units * parseFloat(d.data[0].nav);
+    } catch(e) { growwTotal += invested; }
+  }
+
+  // Zerodha current
+  let zStockTotal = 0;
+  const zHoldings = Object.values(z.holdings);
+  for(const h of zHoldings) {
+    const lots = h.lots.filter(l=>l.type==='buy');
+    const units = lots.reduce((s,l)=>s+l.units,0);
+    const invested = lots.reduce((s,l)=>s+l.units*l.price,0);
+    try { const p = await fetchLivePrice(h.symbol); zStockTotal += units*(p||invested/units); }
+    catch(e) { zStockTotal += invested; }
+  }
+  const zerodhaTotal = zCash + zStockTotal;
+
+  const total = bankTotal + growwTotal + zerodhaTotal + fdTotal + cashTotal;
+
+  document.getElementById('nw-value').textContent = formatINR(total);
+  document.getElementById('nw-date').textContent = 'as of '+new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  // Today change
+  const snaps = getSnapshots();
+  let todayChange = null;
+  if(snaps.length>=2) { todayChange = total - snaps[snaps.length-2].total; }
+  const chEl = document.getElementById('nw-change');
+  if(todayChange!==null) {
+    const pct = (todayChange/Math.max(1,total-todayChange))*100;
+    chEl.textContent = (todayChange>=0?'+':'')+formatINR(todayChange)+' ('+fmtPct(pct)+') today';
+    chEl.className = colorClass(todayChange);
+  }
+
+  document.getElementById('dash-bank').textContent = formatINR(bankTotal);
+  document.getElementById('dash-groww').textContent = formatINR(growwTotal);
+  document.getElementById('dash-zerodha').textContent = formatINR(zerodhaTotal);
+  document.getElementById('dash-fd').textContent = formatINR(fdTotal);
+  document.getElementById('dash-cash').textContent = formatINR(cashTotal);
+  document.getElementById('today-pnl').textContent = todayChange!==null ? formatINR(todayChange) : '—';
+  if(todayChange!==null) document.getElementById('today-pnl').className = 'card-value sm '+colorClass(todayChange);
+
+  // Savings rate
+  if(s.income>0) {
+    const thisMonthInvested = estimateMonthlyInvestment();
+    const rate = (thisMonthInvested/s.income)*100;
+    document.getElementById('savings-rate').textContent = fmtPct(rate);
+    document.getElementById('savings-sub').textContent = formatINR(thisMonthInvested)+' invested this month';
+  }
+
+  // Allocation chart
+  const ctx = document.getElementById('allocation-chart').getContext('2d');
+  if(window.allocChart) window.allocChart.destroy();
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  window.allocChart = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Bank','Groww MF','Zerodha','FD','Cash'],
+      datasets:[{
+        data:[bankTotal,growwTotal,zerodhaTotal,fdTotal,cashTotal],
+        backgroundColor:['#7c6dfa','#22d4a0','#fbbf24','#fb923c','#a78bfa'],
+        borderWidth:2, borderColor: isDark?'#111118':'#ffffff'
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'right', labels:{color:isDark?'#9090a8':'#44445a',font:{family:'Syne',size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>' '+formatINR(ctx.raw)+' ('+((ctx.raw/total)*100).toFixed(1)+'%)'}}
+      },
+      cutout:'65%'
+    }
+  });
+
+  // NW chart
+  renderNWChart('1M');
+  checkMilestones(total);
+
+  // Best / worst performers (from cached invested vs current)
+  const perfRows = [];
+  Object.values(getGroww().holdings).forEach(h=>{
+    const lots=h.lots.filter(l=>l.type==='buy');
+    const inv=lots.reduce((s,l)=>s+l.units*l.price,0);
+    const units=lots.reduce((s,l)=>s+l.units,0);
+    const avg=inv/units;
+    perfRows.push({name:h.name.slice(0,20), inv, avgPrice:avg, units, isStock:false});
+  });
+  Object.values(getZerodha().holdings).forEach(h=>{
+    const lots=h.lots.filter(l=>l.type==='buy');
+    const inv=lots.reduce((s,l)=>s+l.units*l.price,0);
+    const units=lots.reduce((s,l)=>s+l.units,0);
+    const avg=inv/units;
+    perfRows.push({name:h.symbol, inv, avgPrice:avg, units, isStock:true, symbol:h.symbol});
+  });
+  // Use simple % from avg — live prices fetched async separately
+  if(perfRows.length) {
+    // Fetch live prices for perf rows quietly
+    Promise.all(perfRows.map(async r=>{
+      if(r.isStock) { try{const p=await fetchLivePrice(r.symbol); r.pct=p?((p-r.avgPrice)/r.avgPrice)*100:0;}catch(e){r.pct=0;} }
+      else r.pct=0;
+      return r;
+    })).then(rows=>{
+      const s=rows.sort((a,b)=>b.pct-a.pct);
+      const best=s[0], worst=s[s.length-1];
+      if(best) document.getElementById('best-performer').textContent = best.name+(best.pct?(' '+fmtPct(best.pct)):'');
+      if(worst) document.getElementById('worst-performer').textContent = worst.name+(worst.pct?(' '+fmtPct(worst.pct)):'');
+    });
+  }
+}
+
+function renderRollingReturns() {
+  const snaps = getSnapshots();
+  if(snaps.length < 13) {
+    const ctx = document.getElementById('rolling-chart')?.getContext('2d');
+    if(ctx && window.rollingChart) { window.rollingChart.destroy(); }
+    return;
+  }
+  const labels = [], values = [];
+  for(let i=12; i<snaps.length; i++) {
+    const cur = snaps[i].total, prev = snaps[i-12].total;
+    const ret = ((cur-prev)/prev)*100;
+    labels.push(fmtDate(snaps[i].date));
+    values.push(parseFloat(ret.toFixed(2)));
+  }
+  const ctx = document.getElementById('rolling-chart')?.getContext('2d');
+  if(!ctx) return;
+  if(window.rollingChart) window.rollingChart.destroy();
+  window.rollingChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ data:values, backgroundColor: values.map(v=>v>=0?'rgba(34,212,160,0.7)':'rgba(248,114,114,0.7)'), borderRadius:4 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>fmtPct(ctx.raw)}}},
+      scales:{
+        x:{ticks:{color:'#5a5a70',font:{size:9},maxTicksLimit:6},grid:{display:false}},
+        y:{ticks:{color:'#5a5a70',font:{size:9},callback:v=>fmtPct(v)},grid:{color:'rgba(90,90,112,0.15)'}}
+      }
+    }
+  });
+}
+
+function renderNWChart(filter) {
+  const snaps = getSnapshots();
+  const now = new Date();
+  const filterDays = {'1M':30,'3M':90,'6M':180,'1Y':365,'ALL':99999}[filter]||30;
+  const filtered = snaps.filter(s => (now-new Date(s.date))/(24*3600*1000)<=filterDays);
+  const ctx = document.getElementById('nw-chart').getContext('2d');
+  if(window.nwChart) window.nwChart.destroy();
+  if(!filtered.length) { return; }
+  window.nwChart = new Chart(ctx, chartConfig('line', filtered.map(s=>fmtDate(s.date)), filtered.map(s=>s.total), '#7c6dfa'));
+}
+
+function nwFilter(el, filter) {
+  document.querySelectorAll('.chart-filters .filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderNWChart(filter);
+}
+
+// ══════════════════════════════════════════════════════════
+// SNAPSHOTS (daily networth log)
+// ══════════════════════════════════════════════════════════
+function takeSnapshot() {
+  // Called after any data change — queues a full calculation
+  setTimeout(async () => {
+    const bank = getBank();
+    const cash = getCash();
+    const fds = getFDs();
+    const z = getZerodha();
+    const axisbal = bank.axis.length?bank.axis[0].amount:0;
+    const hdfcbal = bank.hdfc.length?bank.hdfc[0].amount:0;
+    const bankTotal = axisbal+hdfcbal;
+    const cashTotal = cash.length?cash[0].amount:0;
+    const fdTotal = fds.reduce((s,f)=>s+fdCurrentValue(f),0);
+    let growwTotal=0;
+    for(const h of Object.values(getGroww().holdings)) {
+      const lots=h.lots.filter(l=>l.type==='buy');
+      const units=lots.reduce((s,l)=>s+l.units,0);
+      const inv=lots.reduce((s,l)=>s+l.units*l.price,0);
+      try{const r=await fetch(`https://api.mfapi.in/mf/${h.code}`);const d=await r.json();growwTotal+=units*parseFloat(d.data[0].nav);}catch(e){growwTotal+=inv;}
+    }
+    let zStock=0;
+    for(const h of Object.values(z.holdings)) {
+      const lots=h.lots.filter(l=>l.type==='buy');
+      const units=lots.reduce((s,l)=>s+l.units,0);
+      const inv=lots.reduce((s,l)=>s+l.units*l.price,0);
+      try{const p=await fetchLivePrice(h.symbol);zStock+=units*(p||inv/units);}catch(e){zStock+=inv;}
+    }
+    const total=bankTotal+growwTotal+(z.cash||0)+zStock+fdTotal+cashTotal;
+    const snaps=getSnapshots();
+    const today=todayStr();
+    const idx=snaps.findIndex(s=>s.date===today);
+    if(idx>=0) snaps[idx].total=total; else snaps.push({date:today,total,bankTotal,growwTotal,zerodhaTotal:(z.cash||0)+zStock,fdTotal,cashTotal});
+    DB.set('snapshots',snaps);
+  }, 500);
+}
+
+// ══════════════════════════════════════════════════════════
+// MON100 / MASPTOP50 PREMIUM TRACKER
+// ══════════════════════════════════════════════════════════
+function premiumLabel(pct) {
+  if(pct<5) return {label:'🟢 Sweet spot',color:'var(--green)'};
+  if(pct<10) return {label:'🙂 Decent deal',color:'var(--green)'};
+  if(pct<15) return {label:'😐 Meh, okay',color:'var(--yellow)'};
+  if(pct<20) return {label:'😬 Getting pricey',color:'var(--yellow)'};
+  if(pct<25) return {label:'🤡 FOMO mode',color:'var(--orange)'};
+  return {label:'🔥 Overheated, chill',color:'var(--red)'};
+}
+
+// Fetch iNAV from NSE India (via CORS proxy)
+async function fetchNSEiNAV(symbol) {
+  // NSE publishes iNAV for ETFs at this endpoint
+  const nseUrl = `https://www.nseindia.com/api/quote-equity?symbol=${encodeURIComponent(symbol)}-INAV`;
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(nseUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(nseUrl)}`,
+  ];
+  for(const url of proxies) {
+    try {
+      const r = await fetch(url, { headers:{ 'Accept':'application/json' } });
+      const d = await r.json();
+      const price = d?.priceInfo?.lastPrice || d?.priceInfo?.close;
+      if(price && price > 0) return price;
+    } catch(e) { continue; }
+  }
+  // Fallback: try NSE ETF list endpoint
+  const nseEtfUrl = `https://www.nseindia.com/api/etf`;
+  for(const proxy of [
+    `https://corsproxy.io/?${encodeURIComponent(nseEtfUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(nseEtfUrl)}`,
+  ]) {
+    try {
+      const r = await fetch(proxy);
+      const d = await r.json();
+      const list = d?.data || d;
+      if(Array.isArray(list)) {
+        const match = list.find(e =>
+          e.symbol === symbol || e.symbol === symbol+'-INAV' ||
+          (e.iNavSymbol && e.iNavSymbol.includes(symbol))
+        );
+        if(match) {
+          const inav = match.iNavValue || match.nav || match.ltp;
+          if(inav && inav > 0) return parseFloat(inav);
+        }
+      }
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+async function refreshPremium() {
+  const etfs = [
+    {key:'mon100', symbol:'MON100',  inavNSE:'MON100'},
+    {key:'masptop50', symbol:'MASPTOP50', inavNSE:'MASPTOP50'}
+  ];
+  for(const etf of etfs) {
+    try {
+      document.getElementById(etf.key+'-updated').textContent = 'Fetching...';
+      // Fetch ETF market price and iNAV in parallel
+      const [etfPrice, inav] = await Promise.all([
+        fetchLivePrice(etf.symbol),
+        fetchNSEiNAV(etf.inavNSE)
+      ]);
+      if(!etfPrice) {
+        document.getElementById(etf.key+'-premium').textContent = '—';
+        document.getElementById(etf.key+'-label').textContent = 'Price fetch failed';
+        document.getElementById(etf.key+'-updated').textContent = 'Tap refresh to retry';
+        continue;
+      }
+      if(!inav) {
+        // Show price only, mark iNAV as unavailable
+        document.getElementById(etf.key+'-premium').textContent = '₹'+etfPrice.toFixed(2);
+        document.getElementById(etf.key+'-label').textContent = 'iNAV unavailable from NSE';
+        document.getElementById(etf.key+'-updated').textContent = 'Price only • '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+        continue;
+      }
+      const premium = ((etfPrice - inav) / inav) * 100;
+      const {label, color} = premiumLabel(Math.abs(premium));
+      document.getElementById(etf.key+'-premium').textContent = fmtPct(premium);
+      document.getElementById(etf.key+'-premium').style.color = color;
+      document.getElementById(etf.key+'-label').textContent = label;
+      document.getElementById(etf.key+'-label').style.color = color;
+      document.getElementById(etf.key+'-updated').textContent =
+        `ETF ₹${etfPrice.toFixed(2)} • iNAV ₹${inav.toFixed(2)} • ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+      checkPremiumAlert(etf.key, premium);
+    } catch(e) {
+      document.getElementById(etf.key+'-label').textContent = 'Fetch failed';
+      document.getElementById(etf.key+'-updated').textContent = 'Tap refresh to retry';
+    }
+  }
+}
+
+function checkPremiumAlert(key, current) {
+  const hist = getPremiumHistory();
+  const prev = hist[key];
+  if(prev!==undefined && Math.abs(current-prev)>=1) {
+    const name = key==='mon100'?'MON100':'MASPTOP50';
+    const dir = current>prev?'▲ increased':'▼ decreased';
+    showToast(`🔔 ${name} premium ${dir} to ${fmtPct(current)}`);
+    if(Notification.permission==='granted') {
+      new Notification(`${name} Premium Alert`, { body:`Premium ${dir} to ${fmtPct(current)}`, icon:'' });
+    }
+  }
+  hist[key] = current;
+  DB.set('premium_history', hist);
+}
+
+// ══════════════════════════════════════════════════════════
+// ANALYSIS PAGE — FULL
+// ══════════════════════════════════════════════════════════
+async function renderAnalysis() {
+  const snaps = getSnapshots();
+  const groww = getGroww();
+  const z = getZerodha();
+  const bank = getBank();
+  const cash = getCash();
+  const fds = getFDs();
+
+  // ── Collect all holdings with live prices ──
+  let allCashflows = [], totalInvested = 0, totalCurrent = 0;
+  let allHoldingRows = [], allHoldPeriods = [];
+  let oldestDate = null;
+
+  // Groww MF
+  for(const h of Object.values(groww.holdings)) {
+    const lots = h.lots.filter(l=>l.type==='buy');
+    const units = lots.reduce((s,l)=>s+l.units,0);
+    const inv = lots.reduce((s,l)=>s+l.units*l.price,0);
+    let nav = inv/units;
+    try { const r=await fetch(`https://api.mfapi.in/mf/${h.code}`); const d=await r.json(); nav=parseFloat(d.data[0].nav); } catch(e){}
+    const cur = units*nav;
+    const pnl = cur-inv; const pct=(pnl/inv)*100;
+    totalInvested+=inv; totalCurrent+=cur;
+    lots.forEach(l=>{ allCashflows.push({date:l.date,amount:-l.units*l.price}); });
+    lots.forEach(l=>{ const days=(new Date()-new Date(l.date))/(24*3600*1000); allHoldPeriods.push(days); if(!oldestDate||l.date<oldestDate) oldestDate=l.date; });
+    allHoldingRows.push({name:h.name.slice(0,25),cur,pnl,pct});
+  }
+  // Groww sells
+  const growwRealized = groww.sells.reduce((s,x)=>s+x.realizedPnL,0);
+  groww.sells.forEach(s=>{ allCashflows.push({date:s.date,amount:s.units*s.sellPrice}); });
+
+  // Zerodha stocks+ETFs
+  for(const h of Object.values(z.holdings)) {
+    const lots = h.lots.filter(l=>l.type==='buy');
+    const units = lots.reduce((s,l)=>s+l.units,0);
+    const inv = lots.reduce((s,l)=>s+l.units*l.price,0);
+    let lp = inv/units;
+    try { const p=await fetchLivePrice(h.symbol); if(p) lp=p; } catch(e){}
+    const cur = units*lp;
+    const pnl=cur-inv; const pct=(pnl/inv)*100;
+    totalInvested+=inv; totalCurrent+=cur;
+    lots.forEach(l=>{ allCashflows.push({date:l.date,amount:-l.units*l.price}); if(!oldestDate||l.date<oldestDate) oldestDate=l.date; });
+    lots.forEach(l=>{ const days=(new Date()-new Date(l.date))/(24*3600*1000); allHoldPeriods.push(days); });
+    allHoldingRows.push({name:h.symbol,cur,pnl,pct});
+  }
+  const zRealized = z.sells.reduce((s,x)=>s+x.realizedPnL,0);
+  z.sells.forEach(s=>{ allCashflows.push({date:s.date,amount:s.units*s.sellPrice}); });
+
+  const totalRealized = growwRealized + zRealized;
+  const totalUnrealized = totalCurrent - totalInvested;
+  const absRetINR = totalUnrealized + totalRealized;
+  const absRetPct = totalInvested>0?(absRetINR/totalInvested)*100:0;
+
+  // XIRR
+  if(totalCurrent>0) allCashflows.push({date:todayStr(),amount:totalCurrent});
+  const xirr = calcXIRR(allCashflows);
+
+  // Money-weighted return (simple approx = XIRR annualized)
+  const mwr = xirr;
+
+  // Avg holding period
+  const avgHold = allHoldPeriods.length ? allHoldPeriods.reduce((a,b)=>a+b,0)/allHoldPeriods.length : 0;
+
+  // Portfolio age
+  const portfolioAgeDays = oldestDate ? (new Date()-new Date(oldestDate))/(24*3600*1000) : 0;
+
+  // Today P&L from snapshots
+  let todayPnL = null;
+  if(snaps.length>=2) todayPnL = snaps[snaps.length-1].total - snaps[snaps.length-2].total;
+
+  // Cash drag
+  const bankTotal = (bank.axis.length?bank.axis[0].amount:0)+(bank.hdfc.length?bank.hdfc[0].amount:0);
+  const cashTotal = cash.length?cash[0].amount:0;
+  const zCash = z.cash||0;
+  const fdTotal = fds.reduce((s,f)=>s+fdCurrentValue(f),0);
+  const totalNetworth = bankTotal+cashTotal+zCash+fdTotal+totalCurrent;
+  const cashDrag = totalNetworth>0?((bankTotal+cashTotal+zCash)/totalNetworth)*100:0;
+
+  // Concentration risk
+  const sorted = [...allHoldingRows].sort((a,b)=>b.cur-a.cur);
+  const top3 = sorted.slice(0,3).reduce((s,r)=>s+r.cur,0);
+  const concPct = totalNetworth>0?(top3/totalNetworth)*100:0;
+
+  // Health score (0-100): diversification + positive return + hold period
+  let health = 50;
+  if(xirr && xirr>0) health += Math.min(20, xirr*100*2);
+  if(cashDrag < 30) health += 10;
+  if(concPct < 50) health += 10;
+  if(avgHold > 180) health += 10;
+  health = Math.min(100, Math.max(0, Math.round(health)));
+
+  // Drawdown
+  const peak = snaps.length ? Math.max(...snaps.map(s=>s.total)) : totalNetworth;
+  const drawdown = peak>0?((peak-totalNetworth)/peak)*100:0;
+
+  // Best / worst
+  const bestH = [...allHoldingRows].sort((a,b)=>b.pct-a.pct)[0];
+  const worstH = [...allHoldingRows].sort((a,b)=>a.pct-b.pct)[0];
+
+  // ── Wire up DOM ──
+  const set = (id,val,cls)=>{ const el=document.getElementById(id); if(el){el.textContent=val; if(cls) el.className=cls;} };
+
+  set('an-xirr', xirr?fmtPct(xirr*100):'—', 'metric-value '+(xirr>0?'positive':'negative'));
+  set('an-abs-pct', fmtPct(absRetPct), 'metric-value '+(absRetPct>0?'positive':'negative'));
+  set('an-abs-inr', formatINR(absRetINR), 'metric-value '+(absRetINR>0?'positive':'negative'));
+  set('an-today', todayPnL!==null?formatINR(todayPnL):'—', 'metric-value '+(todayPnL>0?'positive':todayPnL<0?'negative':'neutral'));
+  set('an-unrealized', formatINR(totalUnrealized), 'metric-value '+(totalUnrealized>0?'positive':'negative'));
+  set('an-realized', formatINR(totalRealized), 'metric-value '+(totalRealized>0?'positive':'negative'));
+  set('an-mwr', mwr?fmtPct(mwr*100):'—', 'metric-value '+(mwr>0?'positive':'negative'));
+  set('an-hold', avgHold>0?Math.round(avgHold)+' days':'—', 'metric-value');
+  set('an-age', portfolioAgeDays>0?Math.round(portfolioAgeDays/30)+' months':'—', 'metric-value');
+  set('an-drag', fmtPct(cashDrag), 'metric-value '+(cashDrag>40?'negative':'neutral'));
+  set('an-conc', top3>0?'Top 3 = '+fmtPct(concPct):'—', 'metric-value '+(concPct>60?'negative':'neutral'));
+
+  // Health score with colour
+  const healthEl = document.getElementById('an-health');
+  if(healthEl) {
+    healthEl.textContent = health+'/100';
+    healthEl.className = 'metric-value '+(health>=70?'positive':health>=45?'neutral':'negative');
+  }
+
+  // Benchmark — fetch Nifty 50 XIRR approx via ^NSEI
+  try {
+    const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=1y');
+    const d = await r.json(); const res = d.chart.result[0];
+    const niftyStart = res.indicators.quote[0].close[0];
+    const niftyEnd = res.meta.regularMarketPrice;
+    const niftyRet = ((niftyEnd-niftyStart)/niftyStart)*100;
+    set('bench-yours', xirr?fmtPct(xirr*100):'—', 'card-value sm '+(xirr>0?'positive':'negative'));
+    set('bench-nifty', fmtPct(niftyRet), 'card-value sm '+(niftyRet>0?'positive':'negative'));
+    const verdict = xirr && xirr*100>niftyRet ? '🏆 Beating Nifty 50!' : '📉 Nifty 50 is ahead — keep going!';
+    set('bench-verdict', verdict, 'card-sub');
+  } catch(e) { set('bench-verdict','Benchmark data unavailable','card-sub'); }
+
+  // Drawdown
+  set('an-drawdown', drawdown>0?'-'+drawdown.toFixed(2)+'%':'🏔️ At all-time high!', 'card-value sm '+(drawdown>0?'negative':'positive'));
+  const bar = document.getElementById('drawdown-bar');
+  if(bar) bar.style.width = Math.min(drawdown,100)+'%';
+  set('an-peak','Peak: '+formatINR(peak),'card-sub');
+
+  // Break-even prices
+  const beList = document.getElementById('breakeven-list');
+  if(beList) {
+    if(!allHoldingRows.length) { beList.innerHTML='<div class="empty-state" style="padding:16px"><div class="empty-text">No holdings</div></div>'; }
+    else {
+      beList.innerHTML = [...Object.values(groww.holdings), ...Object.values(z.holdings)].map(h=>{
+        const lots = h.lots.filter(l=>l.type==='buy');
+        const units = lots.reduce((s,l)=>s+l.units,0);
+        const inv = lots.reduce((s,l)=>s+l.units*l.price,0);
+        const avg = inv/units;
+        const name = h.name||h.symbol;
+        return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <div style="color:var(--text2)">${(name||'').slice(0,28)}</div>
+          <div style="font-family:var(--mono);font-weight:500">₹${avg.toFixed(2)}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Dashboard best/worst update
+  if(bestH) { set('best-performer', bestH.name+' '+fmtPct(bestH.pct)); }
+  if(worstH) { set('worst-performer', worstH.name+' '+fmtPct(worstH.pct)); }
+
+  // Groww analysis tab
+  set('ga-alltime', absRetPct?fmtPct(absRetPct):'—','metric-value '+(absRetPct>0?'positive':'negative'));
+  set('ga-xirr', xirr?fmtPct(xirr*100):'—','metric-value '+(xirr>0?'positive':'negative'));
+  set('ga-abs-inr', formatINR(absRetINR),'metric-value '+(absRetINR>0?'positive':'negative'));
+  set('ga-abs-pct', fmtPct(absRetPct),'metric-value '+(absRetPct>0?'positive':'negative'));
+  set('ga-realized', formatINR(growwRealized),'metric-value '+(growwRealized>0?'positive':'negative'));
+  set('ga-hold', avgHold>0?Math.round(avgHold)+' days':'—','metric-value');
+
+  // Zerodha analysis tab
+  set('za-alltime', fmtPct(absRetPct),'metric-value '+(absRetPct>0?'positive':'negative'));
+  set('za-xirr', xirr?fmtPct(xirr*100):'—','metric-value '+(xirr>0?'positive':'negative'));
+  set('za-abs-inr', formatINR(absRetINR),'metric-value '+(absRetINR>0?'positive':'negative'));
+  set('za-abs-pct', fmtPct(absRetPct),'metric-value '+(absRetPct>0?'positive':'negative'));
+  set('za-realized', formatINR(zRealized),'metric-value '+(zRealized>0?'positive':'negative'));
+  set('za-hold', avgHold>0?Math.round(avgHold)+' days':'—','metric-value');
+  if(bestH) set('za-best', bestH.name,'metric-value');
+  if(worstH) set('za-worst', worstH.name,'metric-value');
+
+  renderHeatmap();
+  renderMilestones();
+  renderProjections('1m');
+  renderRollingReturns();
+}
+
+function renderHeatmap() {
+  const snaps = getSnapshots();
+  const byMonth = {};
+  snaps.forEach((s,i)=>{
+    if(i===0) return;
+    const key=s.date.slice(0,7);
+    const prev=snaps[i-1];
+    if(!byMonth[key]) byMonth[key]={pct:0,count:0};
+    byMonth[key].pct += (s.total-prev.total)/Math.max(1,prev.total)*100;
+    byMonth[key].count++;
+  });
+  const years = [...new Set(Object.keys(byMonth).map(k=>k.slice(0,4)))].sort();
+  const cont = document.getElementById('heatmap-years');
+  cont.innerHTML = years.map(yr=>`
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600">${yr}</div>
+      <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:3px">
+        ${Array.from({length:12},(_,i)=>{
+          const key=yr+'-'+(i+1).toString().padStart(2,'0');
+          const val=byMonth[key]?.pct||0;
+          const alpha=Math.min(Math.abs(val)/10,1);
+          const bg=val>0?`rgba(34,212,160,${0.2+alpha*0.6})`:val<0?`rgba(248,114,114,${0.2+alpha*0.6})`:`var(--bg4)`;
+          const months=['J','F','M','A','M','J','J','A','S','O','N','D'];
+          return `<div title="${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i]} ${yr}: ${val.toFixed(2)}%" style="aspect-ratio:1;border-radius:3px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:7px;color:var(--text3)">${months[i]}</div>`;
+        }).join('')}
+      </div>
+    </div>`).join('') || '<div class="empty-state" style="padding:16px"><div class="empty-text">Log data for a few months first</div></div>';
+}
+
+function renderMilestones() {
+  const snaps = getSnapshots();
+  const targets = [10000,25000,50000,100000,250000,500000,1000000,2500000,5000000,10000000];
+  const hit = [];
+  targets.forEach(t=>{
+    const snap = snaps.find(s=>s.total>=t);
+    if(snap) hit.push({amount:t,date:snap.date});
+  });
+  const el = document.getElementById('milestones-list');
+  if(!hit.length) { el.innerHTML='<div class="empty-state" style="padding:16px"><div class="empty-text">Keep logging your networth!</div></div>'; return; }
+  el.innerHTML = hit.reverse().map(m=>`
+    <div class="milestone-item">
+      <div class="milestone-dot"></div>
+      <div class="milestone-info">
+        <div class="milestone-amount">${formatINR(m.amount)}</div>
+        <div class="milestone-date">${fmtDate(m.date)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderProjections(basis) {
+  const snaps = getSnapshots();
+  if(snaps.length < 2) return;
+  const days = {'1m':30,'3m':90,'6m':180,'1y':365}[basis]||30;
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const recent = snaps.filter(s=>new Date(s.date)>=cutoff);
+  if(recent.length<2) return;
+  const first=recent[0].total, last=recent[recent.length-1].total;
+  const monthlyGrowth = (last-first)/Math.max(recent.length-1,1)/(days/30);
+  const xirr = calcXIRR(recent.map(s=>({date:s.date,amount:s.total-first})).concat([{date:todayStr(),amount:last}]));
+  const rate = xirr ? xirr/12 : (last/first-1)/Math.max(recent.length-1,1);
+  const current = snaps[snaps.length-1].total;
+  const projMonths = [1,3,6,12,24,60,120];
+  const ctx = document.getElementById('projection-chart').getContext('2d');
+  if(window.projChart) window.projChart.destroy();
+  window.projChart = new Chart(ctx, chartConfig('line',
+    projMonths.map(m=>m<12?m+'M':m/12+'Y'),
+    projMonths.map(m=>current*Math.pow(1+rate,m)+(monthlyGrowth*m)),
+    '#a78bfa'
+  ));
+  document.getElementById('projection-table').innerHTML = projMonths.map(m=>`
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <div style="color:var(--text2)">${m<12?m+' month'+(m>1?'s':''):m/12+' year'+(m/12>1?'s':'')}</div>
+      <div style="font-family:var(--mono);font-weight:500">${formatINR(Math.round(current*Math.pow(1+rate,m)+(monthlyGrowth*m)))}</div>
+    </div>`).join('');
+}
+
+let activeProjTab = '1m';
+function projTab(el, which) {
+  document.querySelectorAll('.card .tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  activeProjTab = which;
+  renderProjections(which);
+}
+
+// ══════════════════════════════════════════════════════════
+// MILESTONES CONFETTI
+// ══════════════════════════════════════════════════════════
+function checkMilestones(total) {
+  const targets = [10000,25000,50000,100000,250000,500000,1000000,2500000,5000000,10000000];
+  const hit = DB.get('milestones_hit') || [];
+  targets.forEach(t=>{
+    if(total>=t && !hit.includes(t)) {
+      hit.push(t);
+      DB.set('milestones_hit',hit);
+      celebrateMilestone(t);
+    }
+  });
+}
+function celebrateMilestone(amount) {
+  showToast('🎉 Milestone: '+formatINR(amount)+' networth!', 4000);
+  const canvas = document.getElementById('confetti-canvas');
+  canvas.style.display='block';
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  const ctx=canvas.getContext('2d');
+  const pieces=[];
+  const colors=['#7c6dfa','#22d4a0','#fbbf24','#fb923c','#a78bfa','#f87272'];
+  for(let i=0;i<80;i++) pieces.push({x:Math.random()*canvas.width,y:-10,r:Math.random()*6+3,c:colors[i%colors.length],v:Math.random()*3+2,a:Math.random()*360,s:Math.random()>0.5?1:-1});
+  let frame=0;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{p.y+=p.v;p.a+=p.s*2;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a*Math.PI/180);ctx.fillStyle=p.c;ctx.fillRect(-p.r,-p.r,p.r*2,p.r*2);ctx.restore();});
+    frame++;
+    if(frame<120) requestAnimationFrame(draw); else canvas.style.display='none';
+  }
+  draw();
+}
+
+// ══════════════════════════════════════════════════════════
+// CHART CONFIG HELPER
+// ══════════════════════════════════════════════════════════
+function chartConfig(type, labels, data, color) {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const tc = isDark?'#5a5a70':'#8888a0';
+  return {
+    type,
+    data:{
+      labels,
+      datasets:[{
+        data,
+        borderColor: color,
+        backgroundColor: type==='line'
+          ? `${color}22`
+          : data.map(v=>v>=0?`${color}99`:`rgba(248,114,114,0.6)`),
+        fill: type==='line',
+        tension:0.4, borderWidth:2,
+        pointRadius:2, pointHoverRadius:4,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>formatINR(ctx.raw)}}},
+      scales:{
+        x:{ticks:{color:tc,font:{size:9,family:'JetBrains Mono'},maxTicksLimit:6},grid:{color:isDark?'#1a1a24':'#eeeef4'}},
+        y:{ticks:{color:tc,font:{size:9,family:'JetBrains Mono'},callback:v=>formatINR(v,true)},grid:{color:isDark?'#1a1a24':'#eeeef4'}}
+      }
+    }
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ══════════════════════════════════════════════════════════
+function exportJSON() {
+  const data = {
+    bank: getBank(), cash: getCash(), fds: getFDs(),
+    groww: getGroww(), zerodha: getZerodha(),
+    settings: getSettings(), snapshots: getSnapshots(),
+    exportDate: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='networth-backup-'+todayStr()+'.json'; a.click();
+  showToast('✅ JSON backup exported');
+}
+// ══════════════════════════════════════════════════════════
+// MONTHLY AUTO BACKUP
+// ══════════════════════════════════════════════════════════
+function checkMonthlyBackup() {
+  const key = 'last_monthly_backup';
+  const lastBackup = DB.get(key);
+  const now = new Date();
+  const thisMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  if(lastBackup === thisMonth) return; // Already backed up this month
+  // It's a new month — auto export
+  const data = {
+    bank: getBank(), cash: getCash(), fds: getFDs(),
+    groww: getGroww(), zerodha: getZerodha(),
+    settings: getSettings(), snapshots: getSnapshots(),
+    exportDate: now.toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const monthName = now.toLocaleString('en-IN',{month:'long',year:'numeric'});
+  a.download = 'networth-backup-' + thisMonth + '.json';
+  a.click();
+  DB.set(key, thisMonth);
+  setTimeout(() => showToast('💾 Monthly backup saved for ' + monthName), 1000);
+}
+
+function importJSON() {
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try {
+        const d=JSON.parse(ev.target.result);
+        if(d.bank) DB.set('bank',d.bank);
+        if(d.cash) DB.set('cash',d.cash);
+        if(d.fds) DB.set('fds',d.fds);
+        if(d.groww) DB.set('groww',d.groww);
+        if(d.zerodha) DB.set('zerodha',d.zerodha);
+        if(d.snapshots) DB.set('snapshots',d.snapshots);
+        showToast('✅ Data imported successfully');
+        refreshPage(currentPage);
+      } catch(e) { showToast('❌ Invalid backup file'); }
+    };
+    reader.readAsText(f);
+  };
+  inp.click();
+}
+
+
+// ══════════════════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════════════════
+function renderSettings() {
+  const s = getSettings();
+  if(s.income) document.getElementById('income-input').value = s.income;
+  document.getElementById('notif-status').textContent = 'Permission: '+Notification.permission;
+}
+function saveIncome() {
+  const s = getSettings();
+  s.income = parseFloat(document.getElementById('income-input').value)||0;
+  DB.set('settings',s);
+}
+function estimateMonthlyInvestment() {
+  const thisMonth = todayStr().slice(0,7);
+  const groww = getGroww();
+  const z = getZerodha();
+  let total=0;
+  Object.values(groww.holdings).forEach(h=>h.lots.forEach(l=>{if(l.date.startsWith(thisMonth)&&l.type==='buy')total+=l.units*l.price;}));
+  Object.values(z.holdings).forEach(h=>h.lots.forEach(l=>{if(l.date.startsWith(thisMonth)&&l.type==='buy')total+=l.units*l.price;}));
+  return total;
+}
+function requestNotifPermission() {
+  Notification.requestPermission().then(p=>{
+    document.getElementById('notif-status').textContent='Permission: '+p;
+    showToast(p==='granted'?'✅ Notifications enabled':'⚠️ Permission '+p);
+  });
+}
+function confirmReset() {
+  if(confirm('Reset ALL data? This cannot be undone.')) {
+    ['bank','cash','fds','groww','zerodha','settings','snapshots','premium_history','milestones_hit'].forEach(k=>DB.del(k));
+    showToast('🗑️ All data reset');
+    renderDashboard();
+  }
+}
+// ══════════════════════════════════════════════════════════
+// FIRST SETUP — Import existing holdings with avg price
+// ══════════════════════════════════════════════════════════
+function openFirstSetup() {
+  // Build modal dynamically and inject into body
+  const existing = document.getElementById('modal-first-setup');
+  if(existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'modal-overlay'; el.id = 'modal-first-setup';
+  el.innerHTML = `
+  <div class="modal" style="max-height:92vh">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📥 Import Existing Holdings</div>
+    <div class="card-sub" style="margin-bottom:16px">Enter your current holdings with average buy price and units. No exact dates needed — we'll use today as the reference.</div>
+    <div class="tabs" style="margin-bottom:16px">
+      <div class="tab active" onclick="fsTab(this,'mf')" id="fs-tab-mf">Mutual Funds</div>
+      <div class="tab" onclick="fsTab(this,'stock')" id="fs-tab-stock">Stocks</div>
+      <div class="tab" onclick="fsTab(this,'etf')" id="fs-tab-etf">ETFs</div>
+    </div>
+
+    <div id="fs-mf-section">
+      <div id="fs-mf-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="fsAddRow('mf')">+ Add Fund</button>
+    </div>
+    <div id="fs-stock-section" style="display:none">
+      <div id="fs-stock-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="fsAddRow('stock')">+ Add Stock</button>
+    </div>
+    <div id="fs-etf-section" style="display:none">
+      <div id="fs-etf-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="fsAddRow('etf')">+ Add ETF</button>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-first-setup')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFirstSetup()">Import All</button>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); });
+  // Seed one row per section
+  fsAddRow('mf'); fsAddRow('stock'); fsAddRow('etf');
+  el.classList.add('open');
+}
+
+let fsRows = { mf:[], stock:[], etf:[] };
+function fsTab(el, which) {
+  document.querySelectorAll('#modal-first-setup .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['mf','stock','etf'].forEach(s=>{ const sec=document.getElementById('fs-'+s+'-section'); if(sec) sec.style.display=s===which?'block':'none'; });
+}
+
+function fsAddRow(type) {
+  const listEl = document.getElementById('fs-'+type+'-list');
+  if(!listEl) return;
+  const id = Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  const namePlaceholder = type==='mf'?'Fund name (e.g. Parag Parikh Flexi)':type==='stock'?'Symbol (e.g. INFY)':'ETF Symbol (e.g. NIFTYBEES)';
+  const row = document.createElement('div');
+  row.id = 'fsrow-'+id;
+  row.style.cssText = 'background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:8px';
+  row.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
+      <input class="input" placeholder="${namePlaceholder}" id="fsname-${id}" style="margin-bottom:6px">
+      <button onclick="document.getElementById('fsrow-${id}').remove()" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:8px 4px">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <div class="input-label">Units${type==='mf'?' (can be decimal)':''}</div>
+        <input class="input" type="number" placeholder="e.g. ${type==='mf'?'150.5':'10'}" id="fsunits-${id}" step="${type==='mf'?'0.001':'1'}">
+      </div>
+      <div>
+        <div class="input-label">Avg Buy Price (₹)</div>
+        <input class="input" type="number" placeholder="e.g. ${type==='mf'?'45.20':'1450'}" id="fsprice-${id}" step="0.01">
+      </div>
+    </div>
+    <div style="margin-top:8px">
+      <div class="input-label">Approx Month/Year of first buy</div>
+      <input class="input" type="month" id="fsdate-${id}" value="${todayStr().slice(0,7)}">
+    </div>`;
+  listEl.appendChild(row);
+}
+
+async function saveFirstSetup() {
+  let importedCount = 0;
+  // MF
+  const mfList = document.getElementById('fs-mf-list');
+  if(mfList) {
+    const groww = getGroww();
+    for(const row of mfList.querySelectorAll('[id^=fsrow-]')) {
+      const id = row.id.replace('fsrow-','');
+      const name = document.getElementById('fsname-'+id)?.value?.trim();
+      const units = parseFloat(document.getElementById('fsunits-'+id)?.value);
+      const price = parseFloat(document.getElementById('fsprice-'+id)?.value);
+      const month = document.getElementById('fsdate-'+id)?.value;
+      if(!name||!units||!price) continue;
+      const date = (month||todayStr().slice(0,7))+'-01';
+      const key = 'import_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
+      groww.holdings[key] = { code:key, name, lots:[{ id:Date.now(), units, price, date, type:'import' }] };
+      importedCount++;
+    }
+    DB.set('groww', groww);
+  }
+  // Stocks
+  const stockList = document.getElementById('fs-stock-list');
+  if(stockList) {
+    const z = getZerodha();
+    for(const row of stockList.querySelectorAll('[id^=fsrow-]')) {
+      const id = row.id.replace('fsrow-','');
+      const name = (document.getElementById('fsname-'+id)?.value?.trim()||'').toUpperCase();
+      const units = parseFloat(document.getElementById('fsunits-'+id)?.value);
+      const price = parseFloat(document.getElementById('fsprice-'+id)?.value);
+      const month = document.getElementById('fsdate-'+id)?.value;
+      if(!name||!units||!price) continue;
+      const date = (month||todayStr().slice(0,7))+'-01';
+      if(!z.holdings[name]) z.holdings[name]={ symbol:name, name, type:'stock', lots:[] };
+      z.holdings[name].lots.push({ id:Date.now(), units, price, date, type:'import' });
+      importedCount++;
+    }
+    DB.set('zerodha', z);
+  }
+  // ETFs
+  const etfList = document.getElementById('fs-etf-list');
+  if(etfList) {
+    const z = getZerodha();
+    for(const row of etfList.querySelectorAll('[id^=fsrow-]')) {
+      const id = row.id.replace('fsrow-','');
+      const name = (document.getElementById('fsname-'+id)?.value?.trim()||'').toUpperCase();
+      const units = parseFloat(document.getElementById('fsunits-'+id)?.value);
+      const price = parseFloat(document.getElementById('fsprice-'+id)?.value);
+      const month = document.getElementById('fsdate-'+id)?.value;
+      if(!name||!units||!price) continue;
+      const date = (month||todayStr().slice(0,7))+'-01';
+      if(!z.holdings[name]) z.holdings[name]={ symbol:name, name, type:'etf', lots:[] };
+      z.holdings[name].lots.push({ id:Date.now(), units, price, date, type:'import' });
+      importedCount++;
+    }
+    DB.set('zerodha', z);
+  }
+  closeModal('modal-first-setup');
+  if(importedCount>0) {
+    showToast('✅ Imported '+importedCount+' holding'+(importedCount>1?'s':''));
+    takeSnapshot();
+    renderDashboard();
+  } else {
+    showToast('⚠️ Nothing to import — fill in at least one row');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// PDF EXPORT — Full summary
+// ══════════════════════════════════════════════════════════
+async function exportPDF() {
+  showToast('📄 Generating PDF...');
+  const bank = getBank();
+  const cash = getCash();
+  const fds = getFDs();
+  const groww = getGroww();
+  const z = getZerodha();
+  const snaps = getSnapshots();
+  const axisbal = bank.axis.length?bank.axis[0].amount:0;
+  const hdfcbal = bank.hdfc.length?bank.hdfc[0].amount:0;
+  const bankTotal = axisbal+hdfcbal;
+  const cashTotal = cash.length?cash[0].amount:0;
+  const fdTotal = fds.reduce((s,f)=>s+fdCurrentValue(f),0);
+  let growwTotal=0, growwInv=0;
+  for(const h of Object.values(groww.holdings)) {
+    const lots=h.lots.filter(l=>l.type==='buy');
+    const units=lots.reduce((s,l)=>s+l.units,0);
+    const inv=lots.reduce((s,l)=>s+l.units*l.price,0);
+    try{const r=await fetch(`https://api.mfapi.in/mf/${h.code}`);const d=await r.json();growwTotal+=units*parseFloat(d.data[0].nav);}catch(e){growwTotal+=inv;}
+    growwInv+=inv;
+  }
+  let zStock=0, zInv=0;
+  for(const h of Object.values(z.holdings)) {
+    const lots=h.lots.filter(l=>l.type==='buy');
+    const units=lots.reduce((s,l)=>s+l.units,0);
+    const inv=lots.reduce((s,l)=>s+l.units*l.price,0);
+    try{const p=await fetchLivePrice(h.symbol);zStock+=units*(p||inv/units);}catch(e){zStock+=inv;}
+    zInv+=inv;
+  }
+  const zerodhaTotal = (z.cash||0)+zStock;
+  const total = bankTotal+growwTotal+zerodhaTotal+fdTotal+cashTotal;
+  const totalInvested = growwInv+zInv;
+  const unrealized = (growwTotal+zStock)-totalInvested;
+  const realized = groww.sells.reduce((s,x)=>s+x.realizedPnL,0)+z.sells.reduce((s,x)=>s+x.realizedPnL,0);
+  const absRet = unrealized+realized;
+  const absRetPct = totalInvested>0?(absRet/totalInvested)*100:0;
+  const now = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  const mfRows = Object.values(groww.holdings).map(h=>{
+    const lots=h.lots.filter(l=>l.type==='buy');
+    const units=lots.reduce((s,l)=>s+l.units,0);
+    const inv=lots.reduce((s,l)=>s+l.units*l.price,0);
+    const avg=inv/units;
+    return `<tr><td>${h.name.slice(0,40)}</td><td>${units.toFixed(3)}</td><td>₹${avg.toFixed(2)}</td><td>${formatINR(inv)}</td></tr>`;
+  }).join('');
+  const stockRows = Object.values(z.holdings).map(h=>{
+    const lots=h.lots.filter(l=>l.type==='buy');
+    const units=lots.reduce((s,l)=>s+l.units,0);
+    const inv=lots.reduce((s,l)=>s+l.units*l.price,0);
+    const avg=inv/units;
+    return `<tr><td>${h.symbol} (${h.type})</td><td>${units}</td><td>₹${avg.toFixed(2)}</td><td>${formatINR(inv)}</td></tr>`;
+  }).join('');
+  const fdRows = fds.map(f=>`<tr><td>${f.bank}</td><td>${formatINR(f.principal)}</td><td>${f.rate}%</td><td>${fmtDate(f.start)}</td><td>${fmtDate(f.maturity)}</td><td>${formatINR(fdCurrentValue(f))}</td></tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Networth Report</title>
+  <style>body{font-family:Arial,sans-serif;padding:32px;color:#111;max-width:900px;margin:0 auto}
+  h1{font-size:28px;margin-bottom:4px}h2{font-size:18px;margin:24px 0 10px;color:#333;border-bottom:2px solid #eee;padding-bottom:6px}
+  .hero{background:#f4f4f8;border-radius:12px;padding:20px;margin-bottom:24px}
+  .hero-val{font-size:36px;font-weight:700;font-family:monospace}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+  .card{background:#f9f9fc;border-radius:8px;padding:14px}
+  .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px}
+  .val{font-size:18px;font-weight:600;font-family:monospace;margin-top:4px}
+  .green{color:#16a34a}.red{color:#dc2626}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px}
+  th{background:#f4f4f8;padding:8px 10px;text-align:left;font-size:12px;color:#555}
+  td{padding:8px 10px;border-bottom:1px solid #eee;font-size:13px}
+  .footer{margin-top:32px;font-size:11px;color:#aaa;text-align:center}
+  </style></head><body>
+  <h1>📊 Networth Report</h1><p style="color:#888;margin-bottom:20px">Generated on ${now}</p>
+  <div class="hero"><div class="label">Total Networth</div><div class="hero-val">${formatINR(total)}</div></div>
+  <div class="grid">
+    <div class="card"><div class="label">Bank</div><div class="val">${formatINR(bankTotal)}</div></div>
+    <div class="card"><div class="label">Groww MF</div><div class="val">${formatINR(growwTotal)}</div></div>
+    <div class="card"><div class="label">Zerodha</div><div class="val">${formatINR(zerodhaTotal)}</div></div>
+    <div class="card"><div class="label">Fixed Deposits</div><div class="val">${formatINR(fdTotal)}</div></div>
+    <div class="card"><div class="label">Cash</div><div class="val">${formatINR(cashTotal)}</div></div>
+    <div class="card"><div class="label">Total Invested</div><div class="val">${formatINR(totalInvested)}</div></div>
+    <div class="card"><div class="label">Unrealized P&L</div><div class="val ${unrealized>=0?'green':'red'}">${formatINR(unrealized)}</div></div>
+    <div class="card"><div class="label">Realized P&L</div><div class="val ${realized>=0?'green':'red'}">${formatINR(realized)}</div></div>
+    <div class="card"><div class="label">Abs Return</div><div class="val ${absRet>=0?'green':'red'}">${fmtPct(absRetPct)}</div></div>
+  </div>
+  ${mfRows?`<h2>Groww — Mutual Funds</h2><table><tr><th>Fund</th><th>Units</th><th>Avg Price</th><th>Invested</th></tr>${mfRows}</table>`:''}
+  ${stockRows?`<h2>Zerodha — Stocks & ETFs</h2><table><tr><th>Symbol</th><th>Units</th><th>Avg Price</th><th>Invested</th></tr>${stockRows}</table>`:''}
+  ${fdRows?`<h2>Fixed Deposits</h2><table><tr><th>Bank</th><th>Principal</th><th>Rate</th><th>Start</th><th>Maturity</th><th>Current Value</th></tr>${fdRows}</table>`:''}
+  ${groww.sells.length?`<h2>Groww — Sell History</h2><table><tr><th>Fund</th><th>Units</th><th>Sell Price</th><th>Date</th><th>P&L</th></tr>${groww.sells.map(s=>`<tr><td>${s.name.slice(0,35)}</td><td>${s.units.toFixed(3)}</td><td>₹${s.sellPrice}</td><td>${fmtDate(s.date)}</td><td class="${s.realizedPnL>=0?'green':'red'}">${formatINR(s.realizedPnL)}</td></tr>`).join('')}</table>`:''}
+  ${z.sells.length?`<h2>Zerodha — Sell History</h2><table><tr><th>Symbol</th><th>Units</th><th>Sell Price</th><th>Date</th><th>P&L</th></tr>${z.sells.map(s=>`<tr><td>${s.symbol}</td><td>${s.units}</td><td>₹${s.sellPrice}</td><td>${fmtDate(s.date)}</td><td class="${s.realizedPnL>=0?'green':'red'}">${formatINR(s.realizedPnL)}</td></tr>`).join('')}</table>`:''}
+  <div class="footer">Networth App • Local & Private • All data from your device only</div>
+  </body></html>`;
+  const blob = new Blob([html],{type:'text/html'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='networth-report-'+todayStr()+'.html'; a.click();
+  showToast('✅ PDF report exported (open in browser to print as PDF)');
+}
+
+// ══════════════════════════════════════════════════════════
+// LOADING STATE HELPERS
+// ══════════════════════════════════════════════════════════
+function showLoading(msg='Refreshing...') {
+  document.getElementById('refresh-indicator').textContent = '⟳ '+msg;
+  document.getElementById('refresh-indicator').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('refresh-indicator').classList.remove('show');
+}
+function setLoadingBar(pct) {
+  const bar = document.getElementById('loading-bar');
+  if(bar) bar.style.width = pct+'%';
+}
+function hideLoadingOverlay() {
+  const ov = document.getElementById('loading-overlay');
+  if(ov) { ov.classList.add('hidden'); setTimeout(()=>ov.remove(),500); }
+}
+
+// ══════════════════════════════════════════════════════════
+// DELETE ENTRIES
+// ══════════════════════════════════════════════════════════
+function deleteBankEntry(which, id) {
+  const bank = getBank();
+  bank[which] = bank[which].filter(e=>e.id!==id);
+  DB.set('bank',bank); renderBank(); takeSnapshot();
+  showToast('🗑️ Entry deleted');
+}
+function deleteCashEntry(id) {
+  DB.set('cash', getCash().filter(e=>e.id!==id));
+  renderCash(); takeSnapshot(); showToast('🗑️ Entry deleted');
+}
+
+// ══════════════════════════════════════════════════════════
+// ENHANCED BANK RENDER with delete buttons
+// ══════════════════════════════════════════════════════════
+function renderBankHistoryWithDelete(which, entries, containerId) {
+  const hist = document.getElementById(containerId);
+  if(!entries.length) { hist.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No entries</div></div>'; return; }
+  hist.innerHTML = entries.slice(0,20).map(e=>`
+    <div class="entry-row">
+      <div>
+        <div style="font-size:14px;font-weight:600">${formatINR(e.amount)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">${fmtDate(e.date)}</div>
+      </div>
+      <button class="del-btn" onclick="deleteBankEntry('${which}',${e.id})">🗑</button>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// SERVICE WORKER REGISTRATION
+// ══════════════════════════════════════════════════════════
+function registerServiceWorker() {
+  if(!('serviceWorker' in navigator)) return;
+  const swCode = `
+const CACHE='nw-app-v1';
+const ASSETS=[self.location.href];
+self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))); self.skipWaiting(); });
+self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); self.clients.claim(); });
+self.addEventListener('fetch',e=>{
+  if(e.request.url.includes('api.mfapi.in')||e.request.url.includes('yahoo.com')||e.request.url.includes('finance.yahoo')) return;
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{ const clone=res.clone(); caches.open(CACHE).then(c=>c.put(e.request,clone)); return res; }).catch(()=>caches.match(e.request))));
+});`;
+  const blob = new Blob([swCode],{type:'application/javascript'});
+  const url = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url).catch(()=>{});
+}
+
+// ══════════════════════════════════════════════════════════
+// INSTALL PWA PROMPT
+// ══════════════════════════════════════════════════════════
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show install button in settings
+  const btn = document.getElementById('install-btn');
+  if(btn) btn.style.display = 'flex';
+});
+
+function installPWA() {
+  if(deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(()=>{ deferredInstallPrompt=null; });
+  } else {
+    showToast('📱 To install: tap Share → Add to Home Screen');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUT / SWIPE TO REFRESH
+// ══════════════════════════════════════════════════════════
+let touchStartY = 0;
+document.addEventListener('touchstart', e=>{ touchStartY = e.touches[0].clientY; }, {passive:true});
+document.addEventListener('touchend', e=>{
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  const pages = document.getElementById('pages');
+  if(dy > 80 && pages.scrollTop === 0) {
+    showLoading('Refreshing prices...');
+    refreshPage(currentPage);
+    refreshPremium();
+    setTimeout(hideLoading, 3000);
+  }
+}, {passive:true});
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+(async function init() {
+  const s = getSettings();
+  document.documentElement.setAttribute('data-theme', s.theme||'dark');
+
+  // Safety net — overlay always disappears within 5 seconds no matter what
+  setTimeout(hideLoadingOverlay, 5000);
+
+  // Animate loading bar
+  setLoadingBar(20);
+  await new Promise(r=>setTimeout(r,100));
+  setLoadingBar(50);
+
+  // Register service worker for offline
+  registerServiceWorker();
+
+  setLoadingBar(70);
+  await new Promise(r=>setTimeout(r,100));
+
+  // Auto-refresh premium every 5 min
+  refreshPremium();
+  setInterval(refreshPremium, 5*60*1000);
+
+  // Take daily snapshot
+  takeSnapshot();
+
+  setLoadingBar(90);
+  await new Promise(r=>setTimeout(r,100));
+
+  // Render dashboard — wrapped so any error doesn't block rest of init
+  try { await renderDashboard(); } catch(e) { console.warn('Dashboard render error:', e); }
+
+  setLoadingBar(100);
+  await new Promise(r=>setTimeout(r,300));
+  hideLoadingOverlay();
+
+  // Monthly auto-backup check (runs after app loads)
+  setTimeout(checkMonthlyBackup, 2000);
+
+  // Auto-refresh live prices every 30s during market hours
+  setInterval(()=>{
+    const now = new Date();
+    const ist = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+    const h=ist.getHours(), m=ist.getMinutes(), day=ist.getDay();
+    const isMarketOpen = day>=1&&day<=5 && (h>9||(h===9&&m>=15)) && h<15;
+    if(isMarketOpen && (currentPage==='zerodha'||currentPage==='dashboard')) {
+      showLoading('Live prices...');
+      refreshPage(currentPage);
+      setTimeout(hideLoading, 2000);
+    }
+  }, 30000);
+})();
+</script>
+</body>
+</html>
